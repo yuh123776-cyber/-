@@ -1,4 +1,4 @@
-import {putAsset} from './storage.js';
+import {putAsset} from './storage.js?v=1.0.2';
 export const context=()=>globalThis.SillyTavern?.getContext?.()||null;
 const keys={};
 const adapters=new Map();

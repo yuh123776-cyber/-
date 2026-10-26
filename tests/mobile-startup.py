@@ -5,12 +5,15 @@ import base64,json,mimetypes,os
 from pathlib import Path
 from playwright.sync_api import sync_playwright
 ROOT=Path(__file__).resolve().parents[1]
+MANIFEST=json.loads((ROOT/'manifest.json').read_text())
 PNG=base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aX1cAAAAASUVORK5CYII=')
 HOST='''<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="/style.css"><body>
 <dialog id="host-settings"><div id="extensions_settings"></div></dialog><script>
 const host=document.getElementById('host-settings');host.showModal();
 window.SillyTavern={getContext:()=>({chatMetadata:{},eventTypes:{CHAT_CHANGED:'changed',MESSAGE_RECEIVED:'received'},eventSource:{on:()=>{}},setExtensionPrompt:()=>{}})};
 </script><script type="module" src="/index.js"></script>'''
+HOST=HOST.replace('/index.js', '/'+MANIFEST['js']).replace('/style.css', '/'+MANIFEST['css'])
+
 def serve(route):
     from urllib.parse import urlparse
     path=urlparse(route.request.url).path
@@ -24,6 +27,7 @@ with sync_playwright() as p:
     context.route('http://huiyue.test/**',serve)
     page=context.new_page();errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
     page.goto('http://huiyue.test/host.html');page.wait_for_selector('#extensions_settings button')
+    page.evaluate("const m=document.getElementById('extensions_settings');m.innerHTML=m.innerHTML")
     assert page.evaluate('isSecureContext') is False
     assert page.evaluate('typeof crypto.randomUUID')=='undefined'
     page.locator('#extensions_settings button').click()

@@ -3,10 +3,10 @@
   "loading_order": 100,
   "requires": [],
   "optional": [],
-  "js": "index.js",
-  "css": "style.css",
+  "js": "loader-v1.0.2.js",
+  "css": "style.css?v=1.0.2",
   "author": "绘约",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "剧情时间、双身份、虚拟约稿与稿拍、动态广场、独立 AI 私信、可下载的稿件版本库。",
   "homePage": "https://github.com/yuh123776-cyber/-",
   "minimum_client_version": "1.19.0"

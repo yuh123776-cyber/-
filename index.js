@@ -1,14 +1,14 @@
-import * as C from './core.js';
-import * as S from './storage.js';
-import * as A from './api.js';
-import * as B from './bridge.js';
+import * as C from './core.js?v=1.0.2';
+import * as S from './storage.js?v=1.0.2';
+import * as A from './api.js?v=1.0.2';
+import * as B from './bridge.js?v=1.0.2';
 
 const E=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const icons={home:'⌂',auction:'♧',feed:'♡',inbox:'✉',bench:'▣',me:'☺'};
 const tabs=[['home','橱窗'],['auction','稿拍'],['feed','广场'],['inbox','消息'],['bench','工作台'],['me','我的']];
 const status={quoted:'待确认',working:'绘制中',review:'待验收',complete:'已完成',cancelled:'已取消'};
 const app=document.createElement(typeof HTMLDialogElement!=='undefined'?'dialog':'section');app.id='hy-app';app.hidden=true;app.setAttribute('aria-label','绘约虚拟约稿平台');document.body.append(app);
-const launcher=document.createElement('button');launcher.id='hy-launcher';launcher.type='button';launcher.textContent='✿ 绘约';launcher.title='打开绘约虚拟约稿平台';document.body.append(launcher);
+const launcher=document.createElement('button');launcher.id='hy-launcher';launcher.type='button';launcher.textContent='✿ 绘约';launcher.title='打开绘约虚拟约稿平台 v1.0.2';document.body.append(launcher);
 // Keep the opening control positioned independently of the host layout.
 Object.assign(launcher.style,{position:'fixed',right:'16px',bottom:'90px',zIndex:'2147483000',pointerEvents:'auto'});
 Object.assign(app.style,{margin:'0',padding:'0',border:'0',width:'100%',height:'100%',maxWidth:'none',maxHeight:'none'});
@@ -195,10 +195,12 @@ async function openApp(){
         console.error('[绘约] 打开失败',e);
         if(!opened)return;
         const message=String(e?.message||e);
-        app.innerHTML='<header class="hy-header"><strong>✿ 绘约 · 打开失败</strong>'+btn('close','×','','hy-icon')+'</header><main class="hy-main"><h1>暂时无法打开绘约</h1><p class="hy-error">'+E(message)+'</p><p>请截图保留这条错误信息。无需清除浏览器数据或重置存档。</p><pre>'+E(JSON.stringify({version:'1.0.1',protocol:location.protocol,secureContext:globalThis.isSecureContext,randomUUID:typeof globalThis.crypto?.randomUUID,indexedDB:(()=>{try{return typeof globalThis.indexedDB;}catch{return 'blocked';}})()},null,2))+'</pre><div class="hy-actions">'+btn('retryOpen','重试打开','','hy-primary')+btn('close','返回酒馆')+'</div></main>';
+        app.innerHTML='<header class="hy-header"><strong>✿ 绘约 · 打开失败</strong>'+btn('close','×','','hy-icon')+'</header><main class="hy-main"><h1>暂时无法打开绘约</h1><p class="hy-error">'+E(message)+'</p><p>请截图保留这条错误信息。无需清除浏览器数据或重置存档。</p><pre>'+E(JSON.stringify({version:'1.0.2',protocol:location.protocol,secureContext:globalThis.isSecureContext,randomUUID:typeof globalThis.crypto?.randomUUID,indexedDB:(()=>{try{return typeof globalThis.indexedDB;}catch{return 'blocked';}})()},null,2))+'</pre><div class="hy-actions">'+btn('retryOpen','重试打开','','hy-primary')+btn('close','返回酒馆')+'</div></main>';
     }
 }
 launcher.addEventListener('click',openApp);
+// Delegation survives host panels recreating their settings markup.
+document.addEventListener('click',e=>{if(e.target.closest?.('[data-huiyue-open]')){e.preventDefault();openApp();}},true);
 app.addEventListener('cancel',e=>{e.preventDefault();closeApp();});
 function renderChatCards(){document.querySelectorAll('.hy-st-card').forEach(e=>e.remove());const c=A.context();if(!w?.settings.bridgeEnabled||!c)return;const chatId=c.getCurrentChatId?.()||'';for(const log of w.bridge.filter(x=>x.status==='applied'&&x.chatId===chatId)){const el=document.querySelector(`.mes[mesid="${Number(log.messageId)}"] .mes_text`);if(el){const card=document.createElement('button');card.className='hy-st-card';card.type='button';card.textContent='✿ 绘约 · 打开已同步的稿件';card.addEventListener('click',()=>{showApp();go('order',log.orderId);});el.insertAdjacentElement('afterend',card);}}}
 function hookTavern(){const c=A.context();if(!c)return;const types=c.eventTypes||c.event_types;
@@ -206,9 +208,9 @@ function hookTavern(){const c=A.context();if(!c)return;const types=c.eventTypes|
     c.eventSource?.on(types.MESSAGE_RECEIVED,async id=>{if(!w)return;if(B.detectChatEvent(w,id)){await persist();if(opened&&['me','inbox'].includes(route.page))render();toast('绘约发现交稿话语，请在「我的 → 剧情同步」确认');}});
     for(const type of [types.MESSAGE_UPDATED,types.CHARACTER_MESSAGE_RENDERED,types.MORE_MESSAGES_LOADED].filter(Boolean))c.eventSource?.on(type,()=>renderChatCards());
     if(c.SlashCommandParser&&c.SlashCommand){c.SlashCommandParser.addCommandObject(c.SlashCommand.fromProps({name:'huiyue',callback:async()=>{await openApp();return '';},helpString:'打开绘约虚拟约稿平台。'}));}
-    const mount=document.querySelector('#extensions_settings2')||document.querySelector('#extensions_settings');if(mount){const panel=document.createElement('div');panel.className='extension_container';const b=document.createElement('button');b.textContent='✿ 打开绘约';b.className='menu_button';b.type='button';b.onclick=openApp;panel.append(b);mount.append(panel);}
+    const mount=document.querySelector('#extensions_settings2')||document.querySelector('#extensions_settings');if(mount){const panel=document.createElement('div');panel.className='extension_container';const b=document.createElement('button');b.textContent='✿ 打开绘约 · v1.0.2';b.className='menu_button';b.type='button';b.dataset.huiyueOpen="true";panel.append(b);mount.append(panel);}
 }
-globalThis.Huiyue={version:'1.0.1',open:openApp,registerImageAdapter:A.registerImageAdapter};
+globalThis.Huiyue={version:'1.0.2',open:openApp,registerImageAdapter:A.registerImageAdapter};
 hookTavern();
 if(!A.context())openApp();
 else switchWorld(A.context()?.chatMetadata?.huiyue?.worldId||globalId).catch(e=>toast(e.message,true));
