@@ -1,4 +1,4 @@
-绘约 · SillyTavern 扩展 v1.0.0
+绘约 · SillyTavern 扩展 v1.0.1
 
 推荐：酒馆内在线安装（SillyTavern 1.19.0 及以上）
 1. 打开「扩展」→「安装扩展」。

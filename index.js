@@ -7,8 +7,11 @@ const E=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt
 const icons={home:'⌂',auction:'♧',feed:'♡',inbox:'✉',bench:'▣',me:'☺'};
 const tabs=[['home','橱窗'],['auction','稿拍'],['feed','广场'],['inbox','消息'],['bench','工作台'],['me','我的']];
 const status={quoted:'待确认',working:'绘制中',review:'待验收',complete:'已完成',cancelled:'已取消'};
-const app=document.createElement('section');app.id='hy-app';app.hidden=true;app.setAttribute('aria-label','绘约虚拟约稿平台');document.body.append(app);
+const app=document.createElement(typeof HTMLDialogElement!=='undefined'?'dialog':'section');app.id='hy-app';app.hidden=true;app.setAttribute('aria-label','绘约虚拟约稿平台');document.body.append(app);
 const launcher=document.createElement('button');launcher.id='hy-launcher';launcher.type='button';launcher.textContent='✿ 绘约';launcher.title='打开绘约虚拟约稿平台';document.body.append(launcher);
+// Keep the opening control positioned independently of the host layout.
+Object.assign(launcher.style,{position:'fixed',right:'16px',bottom:'90px',zIndex:'2147483000',pointerEvents:'auto'});
+Object.assign(app.style,{margin:'0',padding:'0',border:'0',width:'100%',height:'100%',maxWidth:'none',maxHeight:'none'});
 let w,route={page:'home'},filter='',feedFilter='全部',search='',opened=false,saveChain=Promise.resolve(),actionBusy=false,modalCleanup=null;
 const running=new Map(),urls=new Map();let epoch=0;
 async function completeSafe(...args){const started=epoch;const result=await A.complete(...args);if(started!==epoch)throw Error('当前世界已经切换，已放弃上个世界的返回结果');return result;}
@@ -24,7 +27,7 @@ const profile=()=>w.accounts[w.role];
 const appearance=()=>({...w.settings,...(!w.settings.sharedProfile?profile().appearance||{}:{})});
 const artistName=id=>id==='self'?w.accounts.artist.name:w.artists.find(a=>a.id===id)?.name||'未知画师';
 const getOrder=id=>C.order(w,id);
-function toast(s,error=false){let el=document.getElementById('hy-toast');if(!el){el=document.createElement('div');el.id='hy-toast';el.setAttribute('role','status');document.body.append(el);}el.textContent=s;el.classList.toggle('error',error);el.hidden=false;clearTimeout(toast.timer);toast.timer=setTimeout(()=>el.hidden=true,error?8000:3500);}
+function toast(s,error=false){let el=document.getElementById('hy-toast');if(!el){el=document.createElement('div');el.id='hy-toast';el.setAttribute('role','status');(opened?app:document.body).append(el);}else if(opened)app.append(el);el.textContent=s;el.classList.toggle('error',error);el.hidden=false;clearTimeout(toast.timer);toast.timer=setTimeout(()=>el.hidden=true,error?8000:3500);}
 function persist(){const snapshot=structuredClone(w);saveChain=saveChain.catch(()=>{}).then(()=>S.saveWorld(snapshot));B.injectSummary(w);return saveChain;}
 function go(page,id){route={page,id};filter='';render();}
 async function hydrate(root=app){for(const el of root.querySelectorAll('[data-image]')){const id=el.dataset.image;try{let u=urls.get(id);if(!u){const a=await S.getAsset(id);if(!a)continue;u=URL.createObjectURL(a.blob);urls.set(id,u);}if(el.isConnected){if(el.tagName==='IMG')el.src=u;else el.style.backgroundImage=`url("${u}")`;}}catch{el.alt='图片读取失败';}}}
@@ -107,7 +110,7 @@ function bridgeModal(){const ch=B.currentCharacter();modal('角色关联与剧�
 function styleModal(){const style=appearance();modal('主题与界面美化',`<label>主题<select name="theme">${[['sky','晴空蓝'],['rose','山茶粉'],['mint','薄荷绿'],['night','夜间创作']].map(([v,s])=>`<option value="${v}" ${style.theme===v?'selected':''}>${s}</option>`).join('')}</select></label>${field('accent','主色',style.accent,'color')}${field('radius','卡片圆角（0–32）',style.radius,'number')}${field('fontSize','字体大小（12–22）',style.fontSize,'number')}<label>背景图<input type="file" name="background" accept="image/*"></label>${check('removeBackground','移除背景图',false)}${area('css','自定义 CSS（仅普通选择器，自动限定在绘约内部）',style.customCSS,6)}<p class="hy-muted">例：.hy-card { border-width: 2px; }。不支持 @import、媒体规则及 CSS 外部图片地址。</p>`,async f=>{style.theme=f.get('theme');style.accent=f.get('accent');style.radius=C.integer(f.get('radius'),0,32);style.fontSize=C.integer(f.get('fontSize'),12,22);style.customCSS=C.text(f.get('css'),20000);if(f.has('removeBackground'))style.background=null;const file=f.get('background');if(file?.size)style.background=await putAssetSafe(file,file.name);const values=Object.fromEntries(['theme','accent','radius','fontSize','background','customCSS'].map(k=>[k,style[k]]));if(w.settings.sharedProfile)Object.assign(w.settings,values);else profile().appearance=values;});}
 const actions={
     orderAutomation:id=>{const o=getOrder(id);modal('本订单的自动生成设置',`<p class="hy-muted">可以单独覆盖全局开关；只对之后的占位和执行链生效。</p>${['autoPrompt','autoImage'].map((k,i)=>`<label>${i?'图片生成':'提示词生成'}<select name="${k}"><option value="inherit" ${typeof o.automation?.[k]!=='boolean'?'selected':''}>跟随全局设置</option><option value="on" ${o.automation?.[k]===true?'selected':''}>自动生成</option><option value="off" ${o.automation?.[k]===false?'selected':''}>手动触发</option></select></label>`).join('')}`,f=>{o.automation={};for(const k of ['autoPrompt','autoImage'])if(f.get(k)!=='inherit')o.automation[k]=f.get(k)==='on';});},
-    close:()=>{app.hidden=true;opened=false;launcher.hidden=false;},closeModal,
+    close:closeApp,closeModal,
     nav:id=>go(id),back:()=>go(['artist','projects'].includes(route.page)?'home':['dm','order'].includes(route.page)?route.page==='dm'?'inbox':'bench':'me'),
     artist:id=>go('artist',id),dm:id=>{go('dm',id);setTimeout(()=>app.querySelector('#hy-dm-log')?.lastElementChild?.scrollIntoView({block:'end'}),30);},order:id=>go('order',id),bench:()=>go('bench'),settings:()=>go('settings'),projects:()=>go('projects'),
     filter:id=>{filter=id;render();},auctionFilter:id=>{filter=id;render();},feedFilter:id=>{feedFilter=id;render();},
@@ -168,24 +171,45 @@ const actions={
 async function autoQueue(ids){const started=epoch;for(const id of ids){if(started!==epoch)break;while(started===epoch&&[...running.values()].some(t=>t.kind!=='dm'))await new Promise(r=>setTimeout(r,300));if(started!==epoch)break;try{const {o}=C.findVersion(w,id);if(automation(o,'autoPrompt'))startTask(id,'prompt');}catch(e){toast(e.message,true);}}}
 function abortAll(){for(const t of running.values())t.controller.abort();running.clear();}
 async function switchWorld(id){closeModal();abortAll();epoch++;const loadEpoch=epoch;if(w)await saveChain.catch(()=>{});const loaded=await S.loadWorld(id)||C.newWorld(id);if(loadEpoch!==epoch)return;w=loaded;for(const o of w.commissions)for(const v of o.versions)if(['prompting','drawing'].includes(v.status))v.status=v.asset?'ready':v.positive?'prompted':'empty';route={page:'home'};await persist();render();}
-async function handleAction(e){const b=e.target.closest('[data-act]');if(!b)return;e.preventDefault();const act=b.dataset.act;if(!actions[act])return;try{await actions[act](b.dataset.id);if(w)await persist();if(!app.querySelector('.hy-modal'))render();}catch(err){toast(err.message,true);}}
+async function handleAction(e){const b=e.target.closest('[data-act]');if(!b)return;e.preventDefault();const act=b.dataset.act;if(act==='retryOpen'){await openApp();return;}if(!actions[act])return;try{await actions[act](b.dataset.id);if(w)await persist();if(!app.querySelector('.hy-modal'))render();}catch(err){toast(err.message,true);}}
 app.addEventListener('click',handleAction);
 app.addEventListener('submit',async e=>{const f=e.target;if(!f.dataset.form)return;e.preventDefault();const data=new FormData(f);try{switch(f.dataset.form){case 'search':search=C.text(data.get('q'),100);render();break;
     case 'dm':{const body=C.text(data.get('body'));if(!body)return;const id=route.id;C.message(w,id,w.role,body,{from:'user'});await persist();render();aiReply(id);break;}
     case 'settings':{const next=structuredClone(w.settings);for(const k of ['autoPrompt','autoImage','randomEvents','sharedProfile'])next[k]=data.has(k);for(const kind of ['chat','prompt','image']){for(const k of ['mode','url','model',...(kind==='image'?[]:['template'])])next[kind][k]=C.text(data.get(`${kind}.${k}`),k==='template'?10000:1000);if(next[kind].mode==='openai'){const u=new URL(next[kind].url);if(!['http:','https:'].includes(u.protocol))throw Error('API 地址无效');}const key=data.get(`${kind}.key`);if(key)A.setKey(kind,key);}
         next.image.width=C.integer(data.get('width'),256,4096);next.image.height=C.integer(data.get('height'),256,4096);next.image.steps=C.integer(data.get('steps'),1,150);const cfg=Number(data.get('cfg'));if(!Number.isFinite(cfg)||cfg<0||cfg>40)throw Error('CFG 请输入 0–40');next.image.cfg=cfg;w.settings=next;await persist();toast('设置已保存；密钥仅保留在当前页面内存中');render();break;}
 }}catch(err){toast(err.message,true);}});
-launcher.addEventListener('click',async()=>{try{if(!w)await switchWorld(A.context()?.chatMetadata?.huiyue?.worldId||globalId);app.hidden=false;launcher.hidden=true;opened=true;render();}catch(e){toast('无法打开本地数据库：'+e.message,true);}});
-function renderChatCards(){document.querySelectorAll('.hy-st-card').forEach(e=>e.remove());const c=A.context();if(!w?.settings.bridgeEnabled||!c)return;const chatId=c.getCurrentChatId?.()||'';for(const log of w.bridge.filter(x=>x.status==='applied'&&x.chatId===chatId)){const el=document.querySelector(`.mes[mesid="${Number(log.messageId)}"] .mes_text`);if(el){const card=document.createElement('button');card.className='hy-st-card';card.type='button';card.textContent='✿ 绘约 · 打开已同步的稿件';card.addEventListener('click',()=>{app.hidden=false;opened=true;launcher.hidden=true;go('order',log.orderId);});el.insertAdjacentElement('afterend',card);}}}
+function closeApp(){if(typeof app.close==='function'&&app.open)app.close();app.hidden=true;opened=false;launcher.hidden=false;}
+function showApp(){
+    app.hidden=false;launcher.hidden=true;opened=true;
+    if(typeof app.showModal==='function'&&!app.open)app.showModal();
+    const toastElement=document.getElementById('hy-toast');if(toastElement)app.append(toastElement);
+}
+async function openApp(){
+    try{
+        showApp();
+        if(!w)app.innerHTML='<main class="hy-main"><h1>✿ 绘约</h1><p role="status">正在读取本地存档…</p>'+btn('close','关闭')+'</main>';
+        await S.openDB();
+        if(!w)await switchWorld(A.context()?.chatMetadata?.huiyue?.worldId||globalId);
+        if(opened)render();
+    }catch(e){
+        console.error('[绘约] 打开失败',e);
+        if(!opened)return;
+        const message=String(e?.message||e);
+        app.innerHTML='<header class="hy-header"><strong>✿ 绘约 · 打开失败</strong>'+btn('close','×','','hy-icon')+'</header><main class="hy-main"><h1>暂时无法打开绘约</h1><p class="hy-error">'+E(message)+'</p><p>请截图保留这条错误信息。无需清除浏览器数据或重置存档。</p><pre>'+E(JSON.stringify({version:'1.0.1',protocol:location.protocol,secureContext:globalThis.isSecureContext,randomUUID:typeof globalThis.crypto?.randomUUID,indexedDB:(()=>{try{return typeof globalThis.indexedDB;}catch{return 'blocked';}})()},null,2))+'</pre><div class="hy-actions">'+btn('retryOpen','重试打开','','hy-primary')+btn('close','返回酒馆')+'</div></main>';
+    }
+}
+launcher.addEventListener('click',openApp);
+app.addEventListener('cancel',e=>{e.preventDefault();closeApp();});
+function renderChatCards(){document.querySelectorAll('.hy-st-card').forEach(e=>e.remove());const c=A.context();if(!w?.settings.bridgeEnabled||!c)return;const chatId=c.getCurrentChatId?.()||'';for(const log of w.bridge.filter(x=>x.status==='applied'&&x.chatId===chatId)){const el=document.querySelector(`.mes[mesid="${Number(log.messageId)}"] .mes_text`);if(el){const card=document.createElement('button');card.className='hy-st-card';card.type='button';card.textContent='✿ 绘约 · 打开已同步的稿件';card.addEventListener('click',()=>{showApp();go('order',log.orderId);});el.insertAdjacentElement('afterend',card);}}}
 function hookTavern(){const c=A.context();if(!c)return;const types=c.eventTypes||c.event_types;
     c.eventSource?.on(types.CHAT_CHANGED,async()=>{try{const id=A.context()?.chatMetadata?.huiyue?.worldId||globalId;await switchWorld(id);}catch(e){toast(e.message,true);}});
     c.eventSource?.on(types.MESSAGE_RECEIVED,async id=>{if(!w)return;if(B.detectChatEvent(w,id)){await persist();if(opened&&['me','inbox'].includes(route.page))render();toast('绘约发现交稿话语，请在「我的 → 剧情同步」确认');}});
     for(const type of [types.MESSAGE_UPDATED,types.CHARACTER_MESSAGE_RENDERED,types.MORE_MESSAGES_LOADED].filter(Boolean))c.eventSource?.on(type,()=>renderChatCards());
-    if(c.SlashCommandParser&&c.SlashCommand){c.SlashCommandParser.addCommandObject(c.SlashCommand.fromProps({name:'huiyue',callback:async()=>{launcher.click();return '';},helpString:'打开绘约虚拟约稿平台。'}));}
-    const mount=document.querySelector('#extensions_settings2')||document.querySelector('#extensions_settings');if(mount){const panel=document.createElement('div');panel.className='extension_container';const b=document.createElement('button');b.textContent='✿ 打开绘约';b.className='menu_button';b.onclick=()=>launcher.click();panel.append(b);mount.append(panel);}
+    if(c.SlashCommandParser&&c.SlashCommand){c.SlashCommandParser.addCommandObject(c.SlashCommand.fromProps({name:'huiyue',callback:async()=>{await openApp();return '';},helpString:'打开绘约虚拟约稿平台。'}));}
+    const mount=document.querySelector('#extensions_settings2')||document.querySelector('#extensions_settings');if(mount){const panel=document.createElement('div');panel.className='extension_container';const b=document.createElement('button');b.textContent='✿ 打开绘约';b.className='menu_button';b.type='button';b.onclick=openApp;panel.append(b);mount.append(panel);}
 }
-globalThis.Huiyue={version:'1.0.0',open:()=>launcher.click(),registerImageAdapter:A.registerImageAdapter};
+globalThis.Huiyue={version:'1.0.1',open:openApp,registerImageAdapter:A.registerImageAdapter};
 hookTavern();
-if(!A.context())launcher.click();
+if(!A.context())openApp();
 else switchWorld(A.context()?.chatMetadata?.huiyue?.worldId||globalId).catch(e=>toast(e.message,true));
 window.addEventListener('beforeunload',()=>{for(const u of urls.values())URL.revokeObjectURL(u);});
