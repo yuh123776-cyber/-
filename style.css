@@ -22,3 +22,47 @@
 /* Native dialog enters the browser top layer above the tavern settings popup. */
 #hy-app::backdrop{background:transparent}
 #hy-app{margin:0;padding:0;border:0;width:100%;height:100%;max-width:none;max-height:none}
+
+/* One viewBox, stroke and optical frame across all six navigation icons. */
+#hy-app .hy-nav button>span{width:28px;height:28px;display:flex;align-items:center;justify-content:center;line-height:1;font-size:inherit}
+#hy-app .hy-nav svg{display:block;width:24px;height:24px;flex:none}
+#hy-app .hy-nav button{min-height:58px;gap:4px}
+#hy-launcher{padding:0!important;background:transparent;border:0;border-radius:0;box-shadow:none;filter:drop-shadow(0 4px 8px #203f5c35);touch-action:manipulation;transition:transform .18s ease;overflow:visible}
+#hy-launcher:hover{transform:translateY(-3px)}
+#hy-launcher svg,#hy-launcher .hy-launcher-image{display:block;width:100%;height:100%;object-fit:contain;border:0;background:transparent}
+#hy-launcher.hy-custom-launcher{filter:drop-shadow(0 3px 6px #203f5c25)}
+.hy-wand-symbol{display:inline-flex;width:24px;height:24px;color:#76aaca;flex:none}
+.hy-wand-symbol svg{display:block;width:100%;height:100%}
+#hy-app .hy-launcher-preview{width:84px;height:84px;margin:auto;color:var(--hy-accent)}
+#hy-app .hy-icon-preview{width:72px;height:72px;object-fit:contain;align-self:center}
+#hy-app .hy-size-output{display:block;text-align:center;font-size:.85em;color:var(--hy-accent);margin-top:-14px}
+#hy-app .hy-welcome-art{border-radius:20px;background:linear-gradient(135deg,color-mix(in srgb,var(--hy-accent) 13%,var(--hy-card)),var(--hy-card));color:var(--hy-accent);overflow:hidden}
+#hy-app .hy-mascot{display:block;width:100%;max-width:340px;height:auto;margin:0 auto}
+#hy-app .hy-welcome-copy{text-align:center;padding:14px 4px 0}
+#hy-app .hy-welcome-copy h3{font-size:1.4em;margin-top:8px}
+#hy-app .hy-confetti{transform-origin:center;animation:hy-confetti-in .7s ease-out both}
+@keyframes hy-confetti-in{from{opacity:0;transform:translateY(-18px) scale(.8)}to{opacity:1;transform:translateY(0) scale(1)}}
+#hy-app .hy-danger{color:#b05f71;border-color:color-mix(in srgb,#b05f71 35%,transparent)}
+#hy-app .hy-recharge-hero{background:linear-gradient(120deg,color-mix(in srgb,var(--hy-accent) 14%,var(--hy-card)),var(--hy-card));padding:22px;border-radius:20px;border:1px solid color-mix(in srgb,var(--hy-accent) 24%,transparent)}
+#hy-app .hy-recharge-hero>span{font-size:.7em;letter-spacing:.18em;color:var(--hy-accent)}
+#hy-app .hy-recharge-hero h3{margin-top:10px;font-size:1.4em}
+#hy-app .hy-recharge-hero p{font-size:1.2em}
+#hy-app .hy-recharge-options{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+#hy-app .hy-recharge-options label{position:relative;min-width:0;cursor:pointer}
+#hy-app .hy-recharge-options input{position:absolute;opacity:0;width:1px;height:1px}
+#hy-app .hy-recharge-options label>span{display:flex;flex-direction:column;align-items:center;padding:14px 3px;border-radius:15px;border:1px solid color-mix(in srgb,var(--hy-accent) 25%,transparent);font-weight:650}
+#hy-app .hy-recharge-options small{font-weight:400;font-size:.7em}
+#hy-app .hy-recharge-options input:checked+span{background:color-mix(in srgb,var(--hy-accent) 12%,var(--hy-card));border-color:var(--hy-accent);color:var(--hy-accent)}
+#hy-app .hy-recharge-options input:focus-visible+span{outline:2px solid var(--hy-accent);outline-offset:3px}
+#hy-app .hy-recharge-summary{padding:14px;border-radius:14px;background:var(--hy-bg);color:var(--hy-accent)}
+#hy-app .hy-form:has(.hy-recharge-hero){gap:12px}
+#hy-app .hy-form:has(.hy-recharge-hero)>p{margin-bottom:0}
+#hy-app .hy-form:has(.hy-recharge-hero)>button[type=submit]{position:sticky;bottom:0;box-shadow:0 -8px 12px var(--hy-card);margin-bottom:0;z-index:1}
+#hy-app .hy-payment-accounts{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin:16px 0}
+#hy-app .hy-payment-accounts .hy-card{margin:0}
+#hy-app .hy-payment-accounts h2{margin-top:10px}
+#hy-app .hy-like{touch-action:pan-y;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+#hy-app .hy-like-person{display:flex;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid color-mix(in srgb,var(--hy-ink) 8%,transparent)}
+#hy-app .hy-like-person small{display:block}
+#hy-app .hy-person-badge{display:grid;place-items:center;background:color-mix(in srgb,var(--hy-accent) 14%,var(--hy-card));color:var(--hy-accent);width:40px;height:40px;border-radius:14px;flex:none}
+@media(prefers-reduced-motion:reduce){#hy-app .hy-confetti{animation:none}#hy-launcher{transition:none}}

@@ -19,11 +19,16 @@ export function integer(value, min = 0, max = 1e8) {
 export function text(value, max = 10000) { return String(value ?? '').trim().slice(0, max); }
 export function artist(input = {}) {
     return { id: uid(), name: text(input.name || '新画师', 50), bio: text(input.bio || '欢迎来找我讨论你的 OC。', 4000),
-        style: text(input.style || '日系插画', 500), personality: text(input.personality || '温和认真', 2000),
+        style: text(input.style || '日系插画', 500), promptPreset:text(input.promptPreset,4000),negativePreset:text(input.negativePreset,4000), personality: text(input.personality || '温和认真', 2000),
         avatar: input.avatar || null, fans: integer(input.fans ?? 0), min: integer(input.min ?? 280, 1),
         max: integer(input.max ?? 1200, 1), days: integer(input.days ?? 12, 1, 365), revisions: integer(input.revisions ?? 2, 0, 30),
         open: input.open !== false, available: integer(input.available ?? 1, 1), works: [], reviews: [], favorite: false,
         refusal: text(input.refusal || '不接受信息不完整的需求', 1000), linked: null, ...input };
+}
+export function artistPresets(a){return {positive:text(a?.promptPreset,4000),negative:text(a?.negativePreset,4000)};}
+export function withArtistPresets(positive,negative,presets){
+    const combine=(body,preset)=>{body=text(body);preset=text(preset,4000);return !preset||body.includes(preset)?body:preset+(body?', '+body:'');};
+    return {positive:combine(positive,presets?.positive),negative:combine(negative,presets?.negative)};
 }
 export function newWorld(id = uid()) {
     const a = [artist({name:'雾见青',style:'唯美厚涂 · 角色立绘',personality:'温和细腻，重视细节。需求模糊时会耐心追问。',fans:12000,min:280,max:900,days:12}),
@@ -42,6 +47,45 @@ export function money(w, role, delta, reason, ref = '') {
     integer(Math.abs(delta), 0); if (!['client','artist'].includes(role)) throw Error('未知账户');
     const account=w.accounts[role]; if(account.balance+delta<0) throw Error('绘币余额不足');
     account.balance+=delta; w.ledger.push({id:uid(),role,delta,reason,ref,day:w.day,balance:account.balance});
+}
+export function activateArtist(w) {
+    if(w.artistActivated)throw Error('画师身份已经开通');
+    w.artistActivated=true;w.role='artist';
+    record(w,'开通画师身份，开始接收虚拟约稿请求');
+    return incoming(w);
+}
+export function deactivateArtist(w) {
+    if(!w.artistActivated)throw Error('画师身份尚未开通');
+    w.artistActivated=false;w.role='client';
+    for(const o of w.commissions)if(o.owner==='artist'&&o.status==='quoted')o.status='cancelled';
+    record(w,'注销画师身份，停止接收新请求；资料、余额与已接订单保留');
+}
+export function socialReactions(w,p,random=Math.random) {
+    // These are local, fictional contacts, never real users or arbitrary AI names.
+    const peers=w.artists.filter(a=>a.id!==p.artistId&&a.name!==p.author).map(a=>({id:a.id,name:a.name,relation:'创作同好'}));
+    const contacts=['小满','青禾','远山'].filter(name=>name!==p.author).map((name,i)=>({id:`contact:${p.artistId||p.role||'world'}:${i}`,name,relation:'可能认识的同好'}));
+    const pool=[...peers,...contacts];
+    p.likePeople=[];p.comments||=[];p.likes=0;p.liked=false;
+    const shuffled=pool.map(person=>({person,key:random()})).sort((a,b)=>a.key-b.key).map(x=>x.person);
+    const count=Math.min(shuffled.length,1+Math.floor(random()*3));
+    p.likePeople=shuffled.slice(0,count).map(person=>({...person}));p.likes=p.likePeople.length;
+    const replies=/配色|色彩|颜色/.test(p.body)?['这个配色好温柔，想看后续！','这组颜色很适合你的画风。']:/草稿|成稿|稿件|交稿/.test(p.body)?['这次的稿件好期待，辛苦啦！','来蹲一张完成后的展示。']:['带着灵感来串门啦，期待你的新作品！','忙创作也要记得休息呀。'];
+    for(const person of shuffled.slice(0,Math.min(2,1+Math.floor(random()*2))))p.comments.push({id:uid(),author:person.name,personId:person.id,relation:person.relation,body:replies[p.comments.length%replies.length],day:w.day});
+    return p;
+}
+export function likePeople(p) { return Array.isArray(p.likePeople)?p.likePeople:[]; }
+export function hasLiked(w,p) { return likePeople(p).some(person=>person.id===w.accounts[w.role].id)||(p.liked===true&&!Array.isArray(p.likePeople)); }
+export function toggleLike(w,p) {
+    if(!p)throw Error('动态不存在');
+    const account=w.accounts[w.role];
+    if(!Array.isArray(p.likePeople)){
+        p.likePeople=[];
+        if(p.liked)p.likePeople.push({id:account.id,name:account.name,relation:'我'});
+    }
+    const i=p.likePeople.findIndex(person=>person.id===account.id);
+    if(i>=0){p.likePeople.splice(i,1);p.likes=Math.max(0,p.likes-1);}
+    else{p.likePeople.push({id:account.id,name:account.name,relation:w.role==='artist'?'画师':'委托人'});p.likes++;}
+    p.liked=p.likePeople.some(person=>person.id===account.id);
 }
 export function message(w, artistId, role, body, extra = {}) {
     const key=`${role}:${artistId}`; const msg={id:uid(),day:w.day,body:text(body),...extra};
@@ -123,7 +167,7 @@ export function advance(w,days,random=Math.random) {
                 a.held=0;record(w,`稿拍「${a.title}」${a.winner?`以 ${amount} 绘币成交`:'流拍'}`);notify(w,`稿拍「${a.title}」已结束`);
             }else if(w.settings.randomEvents&&random()<0.35)bid(w,a.id,(a.bids.at(-1)?.amount||a.start-a.increment)+a.increment,'npc');
         }
-        if(w.settings.randomEvents&&random()<0.25){const a=w.artists[Math.floor(random()*w.artists.length)];if(a)w.posts.unshift({id:uid(),author:a.name,artistId:a.id,category:'生活',body:['今天在整理参考图，新的灵感慢慢来了。','在画一个很喜欢的角色，期待交稿的那天。','今天的色彩练习完成了。'][Math.floor(random()*3)],asset:null,day:w.day,likes:0,liked:false,comments:[]});}
+        if(w.settings.randomEvents&&random()<0.25){const a=w.artists[Math.floor(random()*w.artists.length)];if(a)w.posts.unshift(socialReactions(w,{id:uid(),author:a.name,artistId:a.id,category:'生活',body:['今天在整理参考图，新的灵感慢慢来了。','在画一个很喜欢的角色，期待交稿的那天。','今天的色彩练习完成了。'][Math.floor(random()*3)],asset:null,day:w.day,likes:0,liked:false,comments:[]},random));}
     }
     record(w,`剧情推进 ${days} 日`);return created;
 }
@@ -133,7 +177,7 @@ export function incoming(w) {
     const o={id:uid(),artistId:'self',owner:'artist',clientName:['小满','青禾','远山'][w.commissions.length%3],title:'新的 OC 插画委托',brief:'想约一张日系 OC 半身插画，浅色服装、花园背景。细节和构图可以一起商量。',price:integer(p.min,1),days:integer(p.days,1,365),stage:0,status:'quoted',createdDay:w.day,revisions:0,maxRevisions:integer(p.revisions??2,0,30),versions:[],commercial:false,dueDay:null,paused:false};
     w.commissions.push(o);message(w,'self','artist',`${o.clientName}：老师好！${o.brief} 预算 ${o.price} 绘币，可以接吗？`,{from:'client',orderId:o.id});notify(w,'收到一份新的虚拟客户委托','artist');return o;
 }
-export function acceptIncoming(w,id){const o=order(w,id);if(o.owner!=='artist'||o.status!=='quoted')throw Error('不能接受此委托');o.status='working';o.startDay=w.day;o.dueDay=w.day+o.days;o.nextDay=w.day+Math.ceil(o.days/4);record(w,`接受客户「${o.title}」，${o.price} 绘币由虚拟客户托管`);}
+export function acceptIncoming(w,id){if(!w.artistActivated)throw Error('请先重新开通画师身份');const o=order(w,id);if(o.owner!=='artist'||o.status!=='quoted')throw Error('不能接受此委托');o.status='working';o.startDay=w.day;o.dueDay=w.day+o.days;o.nextDay=w.day+Math.ceil(o.days/4);record(w,`接受客户「${o.title}」，${o.price} 绘币由虚拟客户托管`);}
 export function validateWorld(w) {
     if(!w||w.schema!==1||typeof w.id!=='string'||!Number.isSafeInteger(w.day)||w.day<1)throw Error('不支持的存档格式');
     for(const k of ['artists','commissions','auctions','posts','projects','ledger','events','bridge','notifications'])if(!Array.isArray(w[k]))throw Error(`存档缺少 ${k}`);
@@ -148,5 +192,6 @@ export function validateWorld(w) {
     const ids=new Set();for(const a of w.artists){if(!a.id||ids.has(a.id))throw Error('画师 ID 重复');ids.add(a.id);integer(a.min,1);integer(a.max,a.min);integer(a.days,1,365);}
     const orderIds=new Set(),vids=new Set();for(const o of w.commissions){if(!o.id||orderIds.has(o.id))throw Error('订单 ID 重复');orderIds.add(o.id);integer(o.price,1);integer(o.stage,0,3);if(typeof o.title!=='string'||typeof o.brief!=='string')throw Error('订单文字损坏');if(!Array.isArray(o.versions)||!['quoted','working','review','complete','cancelled'].includes(o.status))throw Error('订单损坏');for(const v of o.versions){if(!v.id||vids.has(v.id))throw Error('稿件 ID 重复');vids.add(v.id);if(typeof v.positive!=='string'||typeof v.negative!=='string'||typeof v.note!=='string')throw Error('稿件资料损坏');}}
     for(const a of w.auctions){integer(a.start,1);integer(a.increment,1);if(!Array.isArray(a.bids)||!['open','closed'].includes(a.status))throw Error('拍卖损坏');}
+    if(w.finances){if(typeof w.finances!=='object'||Array.isArray(w.finances))throw Error('剧情资产格式错误');for(const f of Object.values(w.finances)){if(!f||!['CN','US','JP','OTHER'].includes(f.region)||!Array.isArray(f.channels)||f.channels.length!==3||!Array.isArray(f.ledger)||!f.processed||!f.cursors)throw Error('剧情资产损坏');const ids=new Set();for(const c of f.channels){integer(c.cents,0,10000000000);if(!c.id||ids.has(c.id))throw Error('支付账户损坏');ids.add(c.id);}}}
     return w;
 }
