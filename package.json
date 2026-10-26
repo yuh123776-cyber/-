@@ -1,10 +1,10 @@
 {
   "name": "huiyue-sillytavern",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node --test tests/core.test.js tests/features.test.js tests/instructions.test.js",
-    "check": "node --check index.js && node --check core.js && node --check storage.js && node --check api.js && node --check bridge.js && node --check visuals.js && node --check loader-v1.1.1.js && node --check finance.js && node --check funds-source.js && node --check funds-bridge.js && node --check instructions.js && node --check floating-entry.js"
+    "test": "node --test tests/core.test.js tests/features.test.js tests/instructions.test.js tests/chat-media.test.js",
+    "check": "node --check index.js && node --check core.js && node --check storage.js && node --check api.js && node --check bridge.js && node --check visuals.js && node --check loader-v1.2.0.js && node --check finance.js && node --check funds-source.js && node --check funds-bridge.js && node --check instructions.js && node --check floating-entry.js && node --check chat-media.js"
   }
 }

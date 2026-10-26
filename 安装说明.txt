@@ -1,4 +1,4 @@
-绘约 · SillyTavern 扩展 v1.1.1
+绘约 · SillyTavern 扩展 v1.2.0
 
 推荐：酒馆内在线安装（SillyTavern 1.19.0 及以上）
 1. 打开「扩展」→「安装扩展」。
@@ -22,3 +22,5 @@ SillyTavern/public/scripts/extensions/third-party/huiyue/
 详细配置与限制见 README.md。
 
 新设置：提示词 AI 附加指令、生图 AI 附加指令、仅绘约私信生效的对话预设。手机悬浮入口已加强弹窗层级和可视区域适配。
+
+悬浮图标可按住拖动，轻点打开。聊天新增图片及自定义表情包；给表情命名后，AI 可按名称选择发送。普通图片通过文字说明参与对话。
