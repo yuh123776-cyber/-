@@ -43,6 +43,7 @@ export function floatingEntry(button){
         button.style.setProperty('visibility','visible','important');
         button.style.setProperty('opacity','1','important');
         button.style.setProperty('pointer-events','auto','important');
+        button.style.setProperty('touch-action','none','important');
         button.style.setProperty('display',visible?'grid':'none','important');
         button.hidden=!visible;
         if(popover){
@@ -65,34 +66,47 @@ export function floatingEntry(button){
     window.addEventListener('resize',schedule);
     window.visualViewport?.addEventListener('resize',schedule);
     window.visualViewport?.addEventListener('scroll',schedule);
-    button.addEventListener('pointerdown',event=>{
-        if(!visible||drag||event.button!==0||event.isPrimary===false)return;
-        const rect=button.getBoundingClientRect();
-        suppressUntil=0;drag={id:event.pointerId,x:event.clientX,y:event.clientY,left:rect.left,top:rect.top,moved:false};
-        try{button.setPointerCapture(event.pointerId);}catch{ /* Document listeners also cover capture-unavailable browsers. */ }
-    });
-    document.addEventListener('pointermove',event=>{
-        if(!drag||event.pointerId!==drag.id)return;
-        const dx=event.clientX-drag.x,dy=event.clientY-drag.y;
+    const onEntry=event=>event.composedPath?.().includes(button)||button.contains(event.target);
+    function begin(kind,id,x,y){const rect=button.getBoundingClientRect();suppressUntil=0;drag={kind,id,x,y,left:rect.left,top:rect.top,moved:false};}
+    function move(x,y,event){
+        const dx=x-drag.x,dy=y-drag.y;
         if(!drag.moved&&Math.hypot(dx,dy)<6)return;
         drag.moved=true;event.preventDefault();button.classList.add('hy-launcher-dragging');
         const view=window.visualViewport,rect=button.getBoundingClientRect();
         const left=(view?.offsetLeft||0)+8,top=(view?.offsetTop||0)+8;
         const maxX=Math.max(left,(view?.offsetLeft||0)+(view?.width||innerWidth)-rect.width-8);
         const maxY=Math.max(top,(view?.offsetTop||0)+(view?.height||innerHeight)-rect.height-8);
-        const x=Math.max(left,Math.min(maxX,drag.left+dx)),y=Math.max(top,Math.min(maxY,drag.top+dy));
-        position={x:maxX>left?(x-left)/(maxX-left):0,y:maxY>top?(y-top)/(maxY-top):0};sync();
-    },{capture:true,passive:false});
-    function finish(event){
-        if(!drag||event.pointerId!==drag.id)return;
-        const previous=drag;drag=null;button.classList.remove('hy-launcher-dragging');
-        if(previous.moved){suppressUntil=performance.now()+500;event.preventDefault?.();try{localStorage.setItem(positionKey,JSON.stringify(position));}catch{ /* Drag still works without persistence. */ }}
-        try{if(button.hasPointerCapture(previous.id))button.releasePointerCapture(previous.id);}catch{ /* A removed host dialog may already have released capture. */ }
+        const px=Math.max(left,Math.min(maxX,drag.left+dx)),py=Math.max(top,Math.min(maxY,drag.top+dy));
+        position={x:maxX>left?(px-left)/(maxX-left):0,y:maxY>top?(py-top)/(maxY-top):0};sync();
     }
-    document.addEventListener('pointerup',finish,true);
-    document.addEventListener('pointercancel',finish,true);
-    button.addEventListener('lostpointercapture',finish);
-    button.addEventListener('click',event=>{if(event.detail!==0&&performance.now()<suppressUntil){event.preventDefault();event.stopImmediatePropagation();}},true);
+    function finish(event,tap=false){
+        if(!drag)return;const previous=drag;drag=null;button.classList.remove('hy-launcher-dragging');
+        if(previous.moved){suppressUntil=performance.now()+500;event.preventDefault?.();try{localStorage.setItem(positionKey,JSON.stringify(position));}catch{}}
+        if(previous.kind==='pointer')try{if(button.hasPointerCapture(previous.id))button.releasePointerCapture(previous.id);}catch{}
+        if(tap&&!previous.moved)button.click();
+    }
+    // Window capture receives our gestures before host document-level handlers.
+    const touchEvents='ontouchstart' in window;
+    window.addEventListener('pointerdown',event=>{
+        if(!visible||!onEntry(event))return;event.stopPropagation();
+        if(event.pointerType==='touch'&&touchEvents)return;
+        if(drag||event.button!==0||event.isPrimary===false)return;
+        begin('pointer',event.pointerId,event.clientX,event.clientY);
+        try{button.setPointerCapture(event.pointerId);}catch{}
+    },true);
+    window.addEventListener('pointermove',event=>{if(drag?.kind!=='pointer'||event.pointerId!==drag.id)return;event.stopPropagation();move(event.clientX,event.clientY,event);},{capture:true,passive:false});
+    window.addEventListener('pointerup',event=>{if(drag?.kind==='pointer'&&event.pointerId===drag.id){event.stopPropagation();finish(event);}},true);
+    window.addEventListener('pointercancel',event=>{if(drag?.kind==='pointer'&&event.pointerId===drag.id)finish(event);},true);
+    button.addEventListener('lostpointercapture',event=>{if(drag?.kind==='pointer'&&event.pointerId===drag.id)finish(event);});
+    window.addEventListener('touchstart',event=>{
+        if(!visible||!onEntry(event))return;
+        if(event.touches.length!==1){if(drag?.kind==='touch')finish(event);return;}
+        event.preventDefault();event.stopPropagation();const t=event.changedTouches[0];begin('touch',t.identifier,t.clientX,t.clientY);
+    },{capture:true,passive:false});
+    window.addEventListener('touchmove',event=>{if(drag?.kind!=='touch')return;const t=[...event.touches].find(t=>t.identifier===drag.id);if(!t)return;event.preventDefault();event.stopPropagation();move(t.clientX,t.clientY,event);},{capture:true,passive:false});
+    window.addEventListener('touchend',event=>{if(drag?.kind!=='touch'||![...event.changedTouches].some(t=>t.identifier===drag.id))return;event.preventDefault();event.stopPropagation();finish(event,true);},{capture:true,passive:false});
+    window.addEventListener('touchcancel',event=>{if(drag?.kind==='touch')finish(event);},{capture:true,passive:false});
+    window.addEventListener('click',event=>{if(onEntry(event)&&event.detail!==0&&performance.now()<suppressUntil){event.preventDefault();event.stopImmediatePropagation();}},true);
     button.addEventListener('dragstart',event=>event.preventDefault());
     button.addEventListener('contextmenu',event=>event.preventDefault());
     return {sync,resetPosition(){position=null;try{localStorage.removeItem(positionKey);}catch{ /* Position memory is optional. */ }sync();}};

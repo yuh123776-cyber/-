@@ -2,7 +2,7 @@ import {chromium} from 'playwright';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import assert from 'node:assert/strict';
-const root=path.resolve(process.env.HUIYUE_TEST_ROOT||'.'),prefix='/scripts/extensions/third-party/-/',version='1.2.0';
+const root=path.resolve(process.env.HUIYUE_TEST_ROOT||'.'),prefix='/scripts/extensions/third-party/-/',version='1.2.1';
 const manifest=JSON.parse(await fs.readFile(path.join(root,'manifest.json'),'utf8'));
 const gif=Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7','base64');
 const html=`<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="${prefix}${manifest.css}"><div id="extensions_settings2"></div><script>window.aiCalls=[];window.reply='收到你的图啦！';const ctx={chatMetadata:{},eventTypes:{CHAT_CHANGED:'changed',MESSAGE_RECEIVED:'received'},eventSource:{on:()=>{}},setExtensionPrompt:()=>{},generateRaw:async input=>{aiCalls.push(input);return reply;}};window.SillyTavern={getContext:()=>ctx};</script><script type="module" src="${prefix}${manifest.js}"></script>`;

@@ -1,8 +1,8 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {newWorld} from '../core.js?v=1.2.0';
-import {DEFAULT_DM_PRESET,textInstructions,imageInstructions,dialogueSettings} from '../instructions.js?v=1.2.0';
-import {complete,draw,registerImageAdapter} from '../api.js?v=1.2.0';
+import {newWorld} from '../core.js?v=1.2.1';
+import {DEFAULT_DM_PRESET,textInstructions,imageInstructions,dialogueSettings} from '../instructions.js?v=1.2.1';
+import {complete,draw,registerImageAdapter} from '../api.js?v=1.2.1';
 test('三套指令按用途隔离，旧存档有默认对话预设，留空可停用',()=>{
  const w=newWorld(),before=structuredClone(w.settings);w.settings.dmPreset='DM_ONLY';w.settings.prompt.instructions='PROMPT_ONLY';w.settings.image.instructions='IMAGE_ONLY';
  assert.ok(textInstructions(w.settings.prompt,'prompt').endsWith('PROMPT_ONLY'));assert.ok(!textInstructions(w.settings.chat,'chat').includes('DM_ONLY'));assert.ok(dialogueSettings(w.settings).template.endsWith('DM_ONLY'));assert.deepEqual(w.settings.chat,before.chat);

@@ -1,8 +1,8 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import * as C from '../core.js?v=1.2.0';
-import * as F from '../finance.js?v=1.2.0';
-import {initialEstimate,storyChanges} from '../funds-bridge.js?v=1.2.0';
+import * as C from '../core.js?v=1.2.1';
+import * as F from '../finance.js?v=1.2.1';
+import {initialEstimate,storyChanges} from '../funds-bridge.js?v=1.2.1';
 test('注销关闭未接请求，保留已接订单与资产；重新开通才收新请求',()=>{
  const w=C.newWorld(),first=C.activateArtist(w);C.acceptIncoming(w,first.id);const pending=C.incoming(w),balance=w.accounts.artist.balance;
  C.deactivateArtist(w);assert.equal(w.role,'client');assert.equal(w.artistActivated,false);assert.equal(pending.status,'cancelled');assert.equal(first.status,'working');assert.equal(w.accounts.artist.balance,balance);assert.throws(()=>C.incoming(w));assert.throws(()=>C.acceptIncoming(w,pending.id));

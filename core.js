@@ -91,6 +91,29 @@ export function message(w, artistId, role, body, extra = {}) {
     const key=`${role}:${artistId}`; const msg={id:uid(),day:w.day,body:text(body),...extra};
     (w.messages[key] ||= []).push(msg); return msg;
 }
+export function customer(w,name,id){
+    const customers=w.customers||=[];
+    const found=customers.find(person=>id?person.id===id:person.name===name);if(found)return found;
+    const person={id:id||'customer-'+uid(),name:text(name||'虚拟客户',50),bio:'想为自己的 OC 寻找合适的画师，按双方约定沟通与验收。',personality:'有自己的审美偏好，认真沟通需求和预算。',avatar:null};customers.push(person);return person;
+}
+export function isCustomer(w,id){return (w.customers||[]).some(person=>person.id===id);}
+export function contact(w,id){return (w.customers||[]).find(person=>person.id===id)||w.artists.find(person=>person.id===id)||null;}
+export function threadForOrder(o){return o.owner==='artist'?(o.clientId||'self'):o.artistId;}
+export function migrateCustomerThreads(w){
+    for(const o of w.commissions.filter(o=>o.owner==='artist'))o.clientId=customer(w,o.clientName,o.clientId).id;
+    const legacy=w.messages['artist:self'];if(!legacy?.length)return;
+    const remaining=[],moved=new Map();
+    for(const m of legacy){
+        let o=m.orderId?w.commissions.find(o=>o.id===m.orderId&&o.owner==='artist'):null;
+        if(!o&&m.versionId)o=w.commissions.find(o=>o.owner==='artist'&&o.versions.some(v=>v.id===m.versionId));
+        let target=o?.clientId;
+        if(!target&&m.from==='client')target=(w.customers||[]).find(person=>m.body.startsWith(person.name+'：')||m.body.startsWith(person.name+':'))?.id;
+        if(!target){remaining.push(m);continue;}
+        const key='artist:'+target;if(!moved.has(key))moved.set(key,[]);moved.get(key).push(m);
+    }
+    for(const [key,items] of moved){const seen=new Set();w.messages[key]=[...items,...(w.messages[key]||[])].filter(m=>{if(seen.has(m.id))return false;seen.add(m.id);return true;}).sort((a,b)=>a.day-b.day);}
+    if(remaining.length)w.messages['artist:self']=remaining;else delete w.messages['artist:self'];
+}
 export function quote(w, artistId, options) {
     const a=w.artists.find(a=>a.id===artistId); if(!a) throw Error('找不到画师');
     if(!a.open || a.available>w.day) throw Error('画师当前暂不接稿或尚未到档期');
@@ -109,7 +132,7 @@ export function placeholder(w,id,note='') {
     const o=order(w,id);if(!['working','review'].includes(o.status)) throw Error('订单当前不能提交稿件');
     const v={id:uid(),number:o.versions.length+1,stage:STAGES[o.stage],note:text(note),positive:'',negative:'',asset:null,source:'placeholder',status:'empty',day:w.day,seed:Math.floor(Math.random()*2147483647),params:null,error:null};
     o.versions.push(v);o.status='review';o.paused=true;
-    message(w,o.artistId,o.owner,`${v.stage} V${v.number} 的位置先放在这里，完成后就可以直接查看。`,{from:'artist',versionId:v.id,orderId:o.id});
+    message(w,threadForOrder(o),o.owner,`${v.stage} V${v.number} 的位置先放在这里，完成后就可以直接查看。`,{from:o.owner==='artist'?'user':'artist',versionId:v.id,orderId:o.id});
     record(w,`「${o.title}」提交 ${v.stage} V${v.number} 占位`);notify(w,`「${o.title}」${v.stage}等待验收`,o.owner);return v;
 }
 export function findVersion(w,id) {for(const o of w.commissions){const v=o.versions.find(v=>v.id===id);if(v)return {o,v};}throw Error('找不到稿件版本');}
@@ -125,7 +148,7 @@ export function revise(w,id,note) {
     if(o.revisions>=o.maxRevisions)throw Error('已达约定修改次数，可沟通后取消订单或验收');
     if(!text(note))throw Error('请填写修改意见');
     o.revisions++;o.status='working';o.paused=false;o.nextDay=w.day+1;o.lastRevision=text(note);
-    message(w,o.artistId,o.owner,note,{from:'user'}); record(w,`「${o.title}」请求修改：${text(note,200)}`);
+    message(w,threadForOrder(o),o.owner,note,{from:o.owner==='artist'?'client':'user',orderId:o.id}); record(w,`「${o.title}」请求修改：${text(note,200)}`);
 }
 export function cancelOrder(w,id) {
     const o=order(w,id);if(['complete','cancelled'].includes(o.status))throw Error('订单已结束');
@@ -175,7 +198,7 @@ export function incoming(w) {
     if(!w.artistActivated)throw Error('请先启用画师身份');
     const p=w.accounts.artist;
     const o={id:uid(),artistId:'self',owner:'artist',clientName:['小满','青禾','远山'][w.commissions.length%3],title:'新的 OC 插画委托',brief:'想约一张日系 OC 半身插画，浅色服装、花园背景。细节和构图可以一起商量。',price:integer(p.min,1),days:integer(p.days,1,365),stage:0,status:'quoted',createdDay:w.day,revisions:0,maxRevisions:integer(p.revisions??2,0,30),versions:[],commercial:false,dueDay:null,paused:false};
-    w.commissions.push(o);message(w,'self','artist',`${o.clientName}：老师好！${o.brief} 预算 ${o.price} 绘币，可以接吗？`,{from:'client',orderId:o.id});notify(w,'收到一份新的虚拟客户委托','artist');return o;
+    o.clientId=customer(w,o.clientName).id;w.commissions.push(o);message(w,o.clientId,'artist',`${o.clientName}：老师好！${o.brief} 预算 ${o.price} 绘币，可以接吗？`,{from:'client',orderId:o.id});notify(w,'收到一份新的虚拟客户委托','artist');return o;
 }
 export function acceptIncoming(w,id){if(!w.artistActivated)throw Error('请先重新开通画师身份');const o=order(w,id);if(o.owner!=='artist'||o.status!=='quoted')throw Error('不能接受此委托');o.status='working';o.startDay=w.day;o.dueDay=w.day+o.days;o.nextDay=w.day+Math.ceil(o.days/4);record(w,`接受客户「${o.title}」，${o.price} 绘币由虚拟客户托管`);}
 export function validateWorld(w) {
@@ -192,6 +215,7 @@ export function validateWorld(w) {
     const ids=new Set();for(const a of w.artists){if(!a.id||ids.has(a.id))throw Error('画师 ID 重复');ids.add(a.id);integer(a.min,1);integer(a.max,a.min);integer(a.days,1,365);}
     const orderIds=new Set(),vids=new Set();for(const o of w.commissions){if(!o.id||orderIds.has(o.id))throw Error('订单 ID 重复');orderIds.add(o.id);integer(o.price,1);integer(o.stage,0,3);if(typeof o.title!=='string'||typeof o.brief!=='string')throw Error('订单文字损坏');if(!Array.isArray(o.versions)||!['quoted','working','review','complete','cancelled'].includes(o.status))throw Error('订单损坏');for(const v of o.versions){if(!v.id||vids.has(v.id))throw Error('稿件 ID 重复');vids.add(v.id);if(typeof v.positive!=='string'||typeof v.negative!=='string'||typeof v.note!=='string')throw Error('稿件资料损坏');}}
     for(const a of w.auctions){integer(a.start,1);integer(a.increment,1);if(!Array.isArray(a.bids)||!['open','closed'].includes(a.status))throw Error('拍卖损坏');}
+    if(w.customers!==undefined){if(!Array.isArray(w.customers))throw Error('客户资料损坏');const ids=new Set();for(const c of w.customers){if(!c||typeof c.id!=='string'||!c.id||ids.has(c.id)||typeof c.name!=='string')throw Error('客户资料损坏');ids.add(c.id);}}
     if(w.stickers!==undefined){if(!Array.isArray(w.stickers))throw Error('表情包资料损坏');const stickerIds=new Set();for(const sticker of w.stickers){if(!sticker||typeof sticker.id!=='string'||!sticker.id||stickerIds.has(sticker.id)||typeof sticker.name!=='string'||!sticker.name.trim()||typeof sticker.asset!=='string'||!sticker.asset)throw Error('表情包资料损坏');stickerIds.add(sticker.id);}}
     if(w.finances){if(typeof w.finances!=='object'||Array.isArray(w.finances))throw Error('剧情资产格式错误');for(const f of Object.values(w.finances)){if(!f||!['CN','US','JP','OTHER'].includes(f.region)||!Array.isArray(f.channels)||f.channels.length!==3||!Array.isArray(f.ledger)||!f.processed||!f.cursors)throw Error('剧情资产损坏');const ids=new Set();for(const c of f.channels){integer(c.cents,0,10000000000);if(!c.id||ids.has(c.id))throw Error('支付账户损坏');ids.add(c.id);}}}
     return w;

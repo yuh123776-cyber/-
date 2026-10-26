@@ -2,7 +2,7 @@ import {chromium} from 'playwright';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import assert from 'node:assert/strict';
-const root=path.resolve(process.env.HUIYUE_TEST_ROOT||'.'),prefix='/scripts/extensions/third-party/-/',version='1.2.0';
+const root=path.resolve(process.env.HUIYUE_TEST_ROOT||'.'),prefix='/scripts/extensions/third-party/-/',version='1.2.1';
 const manifest=JSON.parse(await fs.readFile(path.join(root,'manifest.json'),'utf8'));
 const png=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aX1cAAAAASUVORK5CYII=','base64');
 const html=`<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="${prefix}${manifest.css}"><div id="extensions_settings2"></div><script>window.aiCalls=[];window.imageCalls=[];window.aiResponse={positive:'garden portrait',negative:'blurry'};const ctx={chatMetadata:{},eventTypes:{CHAT_CHANGED:'changed',MESSAGE_RECEIVED:'received'},eventSource:{on:()=>{}},setExtensionPrompt:()=>{},generateRaw:async p=>{aiCalls.push(p);return typeof aiResponse==='string'?aiResponse:JSON.stringify(aiResponse);},SlashCommandParser:{commands:{imagine:{callback:async(args,prompt)=>{imageCalls.push({args,prompt});return '/generated.png';}}}}};window.SillyTavern={getContext:()=>ctx};</script><script type="module" src="${prefix}${manifest.js}"></script>`;
