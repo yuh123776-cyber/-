@@ -1,8 +1,8 @@
 // The user authorized persona/lore and new narrative processing exclusively
 // through the text model currently selected in SillyTavern, never standalone APIs.
-import {context,complete,parseJSON} from './api.js?v=1.1.0';
-import {persona,channelName,toCents} from './finance.js?v=1.1.0';
-import {readExplicitFunds} from './funds-source.js?v=1.1.0';
+import {context,complete,parseJSON} from './api.js?v=1.1.1';
+import {persona,channelName,toCents} from './finance.js?v=1.1.1';
+import {readExplicitFunds} from './funds-source.js?v=1.1.1';
 export async function initialEstimate(w){
     const c=context(),local=await readExplicitFunds(c,w.settings.financeBook);
     if(local.result)return local;

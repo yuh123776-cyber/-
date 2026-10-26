@@ -38,8 +38,8 @@ export function newWorld(id = uid()) {
         artists:a, commissions:[], auctions:[], posts:[], projects:[], messages:{}, ledger:[], events:[], bridge:[],
         settings:{theme:'sky',accent:'#76aaca',radius:22,fontSize:15,background:null,customCSS:'',randomEvents:true,autoPrompt:false,autoImage:false,bridgeEnabled:false,inject:false,sharedProfile:false,
             chat:{mode:'tavern',url:'',model:'',template:'你是虚拟约稿平台上的画师。保持角色一致，用中文自然交流。报价只是建议，以系统订单为准。'},
-            prompt:{mode:'tavern',url:'',model:'',template:'把约稿需求整理为绘图提示词。仅输出 JSON：{"positive":"英文正向提示词","negative":"英文负向提示词"}。保留角色外貌、服装、构图与上版要求。'},
-            image:{mode:'tavern',url:'',model:'',width:768,height:1024,steps:28,cfg:7}},notifications:[]};
+            prompt:{mode:'tavern',url:'',model:'',instructions:'',template:'把约稿需求整理为绘图提示词。仅输出 JSON：{"positive":"英文正向提示词","negative":"英文负向提示词"}。保留角色外貌、服装、构图与上版要求。'},
+            image:{mode:'tavern',url:'',model:'',instructions:'',width:768,height:1024,steps:28,cfg:7}},notifications:[]};
 }
 export function notify(w, message, role = 'all') { w.notifications.unshift({id:uid(),day:w.day,message:text(message),role}); w.notifications=w.notifications.slice(0,200); }
 export function record(w, message) { const e={id:uid(),day:w.day,message:text(message)}; w.events.push(e); return e; }

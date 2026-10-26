@@ -16,7 +16,7 @@ try{
  const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
  const click=async(action,id)=>page.locator(`[data-act="${action}"]${id?`[data-id="${id}"]`:''}`).first().click();
  const submit=async()=>{await page.locator('.hy-modal [type=submit]').click();await page.locator('.hy-modal').waitFor({state:'detached'});};
- const state=()=>page.evaluate(async prefix=>{const S=await import(prefix+'storage.js?v=1.1.0');return S.loadWorld(localStorage.getItem('huiyue-world'));},prefix);
+ const state=()=>page.evaluate(async prefix=>{const S=await import(prefix+'storage.js?v=1.1.1');return S.loadWorld(localStorage.getItem('huiyue-world'));},prefix);
  await page.goto('http://huiyue.test/');await page.locator('#extensions_settings2 button').waitFor();
  await page.evaluate(()=>{const menu=document.createElement('div');menu.id='extensionsMenu';document.body.append(menu);});await page.locator('#huiyue_wand_entry').waitFor({state:'attached'});
  await page.locator('#extensions_settings2 button').click();await page.locator('.hy-artist-card').first().waitFor();
@@ -41,13 +41,13 @@ try{
  // New narrative updates source balances once; duplicate renders and message edits do not re-charge.
  assert.equal(await page.evaluate(()=>aiCalls.length),0);
  await page.evaluate(async()=>{mockContext.chat.push({is_user:false,mes:'林知夏用 PayPal 支付了20元。'});aiResponse={events:[{deltaCny:-20,channelId:'channel-0',quote:'林知夏用 PayPal 支付了20元。'}]};await Promise.all(events.received.map(fn=>fn(0)));});
- await page.waitForFunction(async prefix=>{const S=await import(prefix+'storage.js?v=1.1.0');const w=await S.loadWorld(localStorage.getItem('huiyue-world'));return w.finances['persona:lin.png'].ledger.some(e=>e.kind==='story');},prefix);
+ await page.waitForFunction(async prefix=>{const S=await import(prefix+'storage.js?v=1.1.1');const w=await S.loadWorld(localStorage.getItem('huiyue-world'));return w.finances['persona:lin.png'].ledger.some(e=>e.kind==='story');},prefix);
  w=await state();assert.equal(w.finances['persona:lin.png'].channels.reduce((n,c)=>n+c.cents,0),2988000);
  await page.evaluate(async()=>{await Promise.all(events.rendered.map(fn=>fn(0)));mockContext.chat[0].mes='编辑后的正文：林知夏支付了50元。';await Promise.all(events.updated.map(fn=>fn(0)));});
  assert.equal(await page.evaluate(()=>aiCalls.length),1);assert.equal((await state()).finances['persona:lin.png'].channels.reduce((n,c)=>n+c.cents,0),2988000);
  // Failed extraction remains retryable; the retry commits only once.
  await page.evaluate(async()=>{mockContext.chat.push({is_user:false,mes:'林知夏用 PayPal 支付了10元。'});aiResponse={events:[{deltaCny:-99999999,channelId:'channel-0',quote:'林知夏用 PayPal 支付了10元。'}]};await Promise.all(events.received.map(fn=>fn(1)));});
- await page.waitForFunction(async prefix=>{const S=await import(prefix+'storage.js?v=1.1.0');const w=await S.loadWorld(localStorage.getItem('huiyue-world'));return Object.keys(w.finances['persona:lin.png'].pending||{}).length===1;},prefix);
+ await page.waitForFunction(async prefix=>{const S=await import(prefix+'storage.js?v=1.1.1');const w=await S.loadWorld(localStorage.getItem('huiyue-world'));return Object.keys(w.finances['persona:lin.png'].pending||{}).length===1;},prefix);
  await click('nav','me');await click('funds');await page.evaluate(()=>{aiResponse={events:[{deltaCny:-10,channelId:'channel-0',quote:'林知夏用 PayPal 支付了10元。'}]};});await click('retryFunds');await page.locator('[data-act=retryFunds]').waitFor({state:'detached'});assert.equal((await state()).finances['persona:lin.png'].channels.reduce((n,c)=>n+c.cents,0),2987000);
  // A second persona with no declared funds uses the current tavern model once, then persists.
  await page.evaluate(async()=>{mockContext.name1='顾遥';mockContext.chatMetadata.persona='gu.png';mockContext.powerUserSettings.persona_description='顾遥是一名工作多年的自由插画师，未说明存款。';aiResponse={totalCny:8000,inferred:true,basis:'依据虚构职业推定存款'};await Promise.all(events.persona.map(fn=>fn('gu.png')));});
@@ -59,7 +59,7 @@ try{
  await click('quote',artist.id);await page.locator('.hy-modal [name=brief]').fill('请绘制花园里的白发角色立绘');await submit();await click('pay');await submit();await click('advance');await page.locator('.hy-modal [name=days]').selectOption('7');await submit();await page.locator('[data-act=versionMain]').first().waitFor();
  await click('editPrompt');assert.equal(await page.locator('.hy-modal [name=positive]').inputValue(),'artist:stardust, (soft watercolor:1.2)');await click('closeModal');
  await page.evaluate(()=>{aiResponse={positive:'1girl, garden',negative:'blurry'};});await click('versionMain');
- await page.waitForFunction(async({prefix,id})=>{const S=await import(prefix+'storage.js?v=1.1.0');const w=await S.loadWorld(localStorage.getItem('huiyue-world'));return w.commissions.find(o=>o.artistId===id)?.versions[0]?.status==='prompted';},{prefix,id:artist.id});
+ await page.waitForFunction(async({prefix,id})=>{const S=await import(prefix+'storage.js?v=1.1.1');const w=await S.loadWorld(localStorage.getItem('huiyue-world'));return w.commissions.find(o=>o.artistId===id)?.versions[0]?.status==='prompted';},{prefix,id:artist.id});
  const version=(await state()).commissions.find(o=>o.artistId===artist.id).versions[0];assert.ok(version.positive.startsWith('artist:stardust, (soft watercolor:1.2)'));assert.ok(version.positive.includes('1girl, garden'));assert.ok(version.negative.includes('watermark, harsh shadows'));assert.ok(version.negative.includes('blurry'));assert.equal(version.artistPresetSnapshot.positive,artist.promptPreset);assert.ok(await page.evaluate(()=>aiCalls.at(-1).prompt[0].content.includes('artistPositivePreset')));
  await page.setViewportSize({width:1440,height:1000});assert.equal(await page.locator('.hy-main').evaluate(el=>el.scrollWidth>el.clientWidth),false);assert.deepEqual(errors,[]);console.log('PASS seven-feature browser flow: equal SVG icons, welcome/reactivation, source-funded recharge, region conservation, social comments and long press, delayed wand entry, launcher switch/theme/custom image/size/export, reload persistence, tavern-only AI initialization, new narrative updates, failed-sync retry and duplicate/edit protection.');
  await context.close();
