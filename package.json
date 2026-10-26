@@ -1,0 +1,10 @@
+{
+  "name": "huiyue-sillytavern",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node tests/core.test.js",
+    "check": "node --check index.js && node --check core.js && node --check storage.js && node --check api.js && node --check bridge.js"
+  }
+}
