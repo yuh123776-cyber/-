@@ -1,5 +1,8 @@
-import {putAsset} from './storage.js?v=1.2.2';
-import {textInstructions,imageInstructions} from './instructions.js?v=1.2.2';
+import {novelAIRequest,novelAIBlob} from './novelai.js?v=1.3.0';
+import * as R from './relay.js?v=1.3.0';
+export {validateRelay} from './relay.js?v=1.3.0';
+import {putAsset} from './storage.js?v=1.3.0';
+import {textInstructions,imageInstructions} from './instructions.js?v=1.3.0';
 export const context=()=>globalThis.SillyTavern?.getContext?.()||null;
 const keys={};
 const adapters=new Map();
@@ -11,19 +14,9 @@ export function hasKey(kind){return !!keys[kind];}
 export async function listModels(settings,kind,signal,key=''){
     if(!['chat','prompt','image'].includes(kind))throw Error('未知 API 配置');
     if(!settings.url?.trim())throw Error('请先填写 API 根地址（含 /v1）');
-    const url=endpoint(settings.url.trim(),'/models');
-    let response;
-    try{response=await fetch(url,{headers:{Accept:'application/json',...((key||keys[kind])?{Authorization:`Bearer ${key||keys[kind]}`}:{})},signal,credentials:'omit',redirect:'error'});}
-    catch(error){if(signal?.aborted)throw error;throw Error('无法拉取模型列表，请检查地址、网络及服务是否允许浏览器跨域访问');}
-    if(!response.ok)throw Error(`拉取模型列表失败（HTTP ${response.status}），请检查地址、密钥权限及服务是否支持 /models`);
-    let data;try{data=await response.json();}catch{throw Error('模型列表不是有效 JSON，请检查 API 根地址');}
-    const entries=Array.isArray(data)?data:data?.data??data?.models;
-    if(!Array.isArray(entries))throw Error('服务返回的模型列表格式不受支持，请手动填写模型名');
-    const models=[...new Set(entries.map(item=>typeof item==='string'?item:item?.id).filter(id=>typeof id==='string'&&id.trim()&&id.length<=1000))].sort();
-    if(!models.length)throw Error('服务没有返回可用模型，请检查密钥权限或手动填写模型名');
-    return models;
+    const data=await R.requestJSON(R.endpoint(settings,'models'),{headers:R.headers(settings,key||keys[kind]),signal});
+    return R.modelIds(data);
 }
-function endpoint(base,path){const u=new URL(base);if(!['http:','https:'].includes(u.protocol)||u.username||u.password)throw Error('API 地址必须是 HTTP(S)，请勿在地址中填写密钥');return base.replace(/\/+$/,'')+path;}
 async function checked(response){if(!response.ok)throw Error(`API 请求失败（HTTP ${response.status}），请检查地址、模型和密钥`);return response;}
 export function parseJSON(s){const stripped=String(s).replace(/^\s*```(?:json)?\s*/,'').replace(/\s*```\s*$/,'');try{return JSON.parse(stripped);}catch{throw Error('AI 返回的不是有效 JSON，请重试或手动填写');}}
 export async function complete(settings,kind,messages,signal){
@@ -33,8 +26,8 @@ export async function complete(settings,kind,messages,signal){
         const pending=tavernQueue.catch(()=>{}).then(request);tavernQueue=pending;const result=await pending;
         if(signal?.aborted)throw Error('已放弃本次结果');return result;
     }
-    const result=await checked(await fetch(endpoint(settings.url,'/chat/completions'),{method:'POST',headers:{'Content-Type':'application/json',...(keys[kind]?{Authorization:`Bearer ${keys[kind]}`}:{})},body:JSON.stringify({model:settings.model,messages:[{role:'system',content:textInstructions(settings,kind)},...messages],stream:false}),signal}));
-    const data=await result.json();const content=data.choices?.[0]?.message?.content;if(typeof content!=='string'||!content.trim())throw Error('API 没有返回文本内容');return content;
+    const data=await R.requestJSON(R.endpoint(settings,'text'),{method:'POST',headers:R.headers(settings,keys[kind],true),body:JSON.stringify(R.textRequest(settings,textInstructions(settings,kind),messages)),signal});
+    return R.textContent(data);
 }
 export async function draw(settings,v,signal){
     const sentPrompt=imageInstructions(settings,v.positive);
@@ -54,13 +47,16 @@ export async function draw(settings,v,signal){
         if(!url)throw Error('图片生成未返回文件，请检查酒馆图片扩展的连接状态');
         const u=new URL(url,location.href);if(u.origin!==location.origin)throw Error('酒馆返回了外部图片地址，请手动下载后上传');
         blob=await (await checked(await fetch(u,{signal}))).blob();params.note='使用酒馆 Image Generation 当前来源；实际模型和参考图能力由酒馆设置决定。';
+    }else if(settings.imageProtocol==='novelai'){
+        const url=R.endpoint(settings,'image');
+        blob=await novelAIBlob(url,settings,keys.image,novelAIRequest(settings,v,sentPrompt),signal);
+        params.note='NovelAI 原生中转；发送独立正反向词、种子、尺寸、步数及 CFG，原始图片解包后保存。';
     }else{
-        const r=await checked(await fetch(endpoint(settings.url,'/images/generations'),{method:'POST',headers:{'Content-Type':'application/json',...(keys.image?{Authorization:`Bearer ${keys.image}`}:{})},body:JSON.stringify({model:settings.model,prompt:sentPrompt+(v.negative?'\nNegative prompt: '+v.negative:''),size:`${settings.width}x${settings.height}`,n:1,response_format:'b64_json'}),signal}));
-        const data=await r.json(),entry=data.data?.[0];
-        if(entry?.b64_json){blob=new Blob([Uint8Array.from(atob(entry.b64_json),c=>c.charCodeAt(0))],{type:'image/png'});}
-        else if(entry?.url){const u=new URL(entry.url);if(u.protocol!=='https:'&&u.protocol!=='http:')throw Error('返回的图片地址无效');blob=await(await checked(await fetch(u,{signal,credentials:'omit'}))).blob();}
-        else throw Error('API 没有返回图片');
-        params.note='OpenAI 兼容图片接口；seed/steps/cfg 仅保留为参考，不保证服务支持。未调用局部重绘。';
+        const url=R.endpoint(settings,'image');
+        const body=R.imageRequest(settings,sentPrompt+(v.negative?'\nNegative prompt: '+v.negative:''));
+        const data=await R.requestJSON(url,{method:'POST',headers:R.headers(settings,keys.image,true),body:JSON.stringify(body),signal});
+        blob=await R.imageBlob(data,url,signal);
+        params.note='中转兼容接口（'+(settings.imageProtocol==='chat'?'聊天式生图':'Images')+'）；仅发送一次生成请求，seed/steps/cfg 等能力由服务决定。';
     }
     if(signal?.aborted)throw Error('已放弃本次结果');
     const ext={'image/jpeg':'jpg','image/webp':'webp','image/gif':'gif'}[blob.type]||'png';

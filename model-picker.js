@@ -18,7 +18,7 @@ export function bindModelPickers(app, api) {
         const box = event.target.closest('[data-api-kind]');
         if (!box) return;
         const kind = box.dataset.apiKind;
-        if (['mode', 'url', 'key'].some(field => event.target.name === `${kind}.${field}`)) clear(box, kind);
+        if (['mode', 'url', 'key', 'modelsPath', 'apiAuth', 'imageProtocol'].some(field => event.target.name === `${kind}.${field}`)) clear(box, kind);
         if (event.target.matches('[data-model-list]') && event.target.value) {
             const input = control(box, kind, 'model');
             input.value = event.target.value;
@@ -41,7 +41,7 @@ export function bindModelPickers(app, api) {
         const timer = setTimeout(() => {timedOut = true;controller.abort();}, 20000);
         const current = () => box.isConnected && pending.get(box) === controller;
         try {
-            const models = await api.listModels({url: control(box, kind, 'url').value.trim()}, kind,
+            const models = await api.listModels({url: control(box, kind, 'url').value.trim(), modelsPath: control(box, kind, 'modelsPath').value, apiAuth: control(box, kind, 'apiAuth').value, imageProtocol: control(box, kind, 'imageProtocol')?.value}, kind,
                 controller.signal, control(box, kind, 'key').value);
             if (!current() || controller.signal.aborted) return;
             select.replaceChildren(new Option('请选择模型（也可手动填写）', ''),

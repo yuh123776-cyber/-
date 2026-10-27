@@ -1,5 +1,14 @@
 # 验证范围与交付限制
 
+## v1.3.0 第三方中转与 NAI
+
+- 40 项 Node 测试通过；新增地址与路径、鉴权隔离、模型包装、Responses、内容数组、Images/聊天式生图参数、NAI V3/V4/V5 参数、ZIP CRC/Deflate/取消、图片原字节和无凭据下载测试。
+- `tests/models.browser.mjs` 三处模型拉取/选择/保存/刷新、错误恢复和过期请求回归通过。
+- `tests/relay.browser.mjs` 系统 Chrome、390×844，验证六个站点预设、预设无自动请求、模型包装、独立文本/生图密钥、四组 NAI 地址、ZIP/JSON 原图存储、协议配置保存，以及 UI 中提示词生成 → NAI 生图 → 原图入库链。所有生成响应均为本地模拟。
+- 公开站点核对：砂糖对接页公布 /novelai Base URL；Rinko 公开站点指向 New API 文档；两个 YesNovelAI 站点 /v1/models 返回真实模型列表，其公开 docs 提供 /v1/nai/generate-image JSON 和 /native/ai/generate-image ZIP 路径。
+- 未使用用户密钥，未真实生图或调用收费模型；未在用户实际酒馆/手机中验收。砂糖和 Rinko /nai 的生成路径按 Base URL 与标准 NAI 路径拼接，并提供手动路径覆盖。
+
+
 ## v1.2.2 模型列表选择
 
 - 基于 main 提交 `671e6fc8c763b951e823a9997ddf0b93ec1c224f`（v1.2.1）。

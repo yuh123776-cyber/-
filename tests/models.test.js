@@ -7,7 +7,7 @@ test('model discovery uses current credentials, isolates kinds and normalizes li
     globalThis.fetch=async(url,options)=>{calls.push({url,options});return Response.json({data:[{id:'z'},{id:'a'},{id:'z'},null,{name:'skip'},{id:''}]});};
     try{
         setKey('chat','saved-chat');setKey('image','saved-image');
-        assert.deepEqual(await listModels({url:' https://example.test/v1/// '},'chat',undefined,'draft-key'),['a','z']);
+        assert.deepEqual(await listModels({url:' https://example.test/v1/// '},'chat',undefined,'draft-key'),['a','skip','z']);
         assert.equal(calls[0].url,'https://example.test/v1/models');
         assert.equal(calls[0].options.headers.Authorization,'Bearer draft-key');
         assert.equal(calls[0].options.credentials,'omit');
