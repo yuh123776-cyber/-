@@ -1,4 +1,4 @@
-import {connectionFields,automaticProfile} from './auto-connect.js?v=1.3.2';
+import {connectionFields,automaticProfile} from './auto-connect.js?v=1.4.0';
 export function bindModelPickers(app,api){
     const pending=new WeakMap(),discovered=new WeakMap();
     const control=(box,kind,field)=>box.querySelector(`[name="${kind}.${field}"]`);
@@ -35,7 +35,7 @@ export function bindModelPickers(app,api){
         let timedOut=false;const timer=setTimeout(()=>{timedOut=true;controller.abort();},20000);
         const current=()=>box.isConnected&&pending.get(box)===controller;
         try{
-            const result=await api.connect({url:control(box,kind,'url').value.trim()},kind,controller.signal,control(box,kind,'key').value);
+            const result=await api.connect({url:control(box,kind,'url').value.trim(),apiProfileId:control(box,kind,'apiProfileId').value},kind,controller.signal,control(box,kind,'key').value);
             if(!current()||controller.signal.aborted)return;
             discovered.set(box,result);
             const previous=select.value;

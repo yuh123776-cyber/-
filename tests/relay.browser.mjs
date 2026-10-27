@@ -4,14 +4,14 @@ import path from 'node:path';
 import assert from 'node:assert/strict';
 import {png,imageZip} from './image-fixture.mjs';
 const require=createRequire(import.meta.url),{chromium}=require('playwright');
-const root=path.resolve(process.env.HUIYUE_TEST_ROOT||'.'),version='1.3.2',calls=[],errors=[];
+const root=path.resolve(process.env.HUIYUE_TEST_ROOT||'.'),version='1.4.0',calls=[],errors=[];
 const browser=await chromium.launch({headless:true,...(process.env.CHROMIUM_PATH?{executablePath:process.env.CHROMIUM_PATH}:{})});
 try{
  const context=await browser.newContext({viewport:{width:390,height:844}});
  await context.route('**/*',async route=>{
   const url=new URL(route.request().url());
   if(url.hostname==='huiyue.test'){
-   if(url.pathname==='/')return route.fulfill({contentType:'text/html',body:'<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="/style.css"><script type="module" src="/loader-v1.3.2.js"></script>'});
+   if(url.pathname==='/')return route.fulfill({contentType:'text/html',body:'<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="/style.css"><script type="module" src="/loader-v1.4.0.js"></script>'});
    const file=path.resolve(root,url.pathname.slice(1));if(!file.startsWith(root+path.sep))return route.abort();
    return route.fulfill({contentType:file.endsWith('.js')?'text/javascript':'text/css',body:await fs.readFile(file)});
   }
@@ -29,10 +29,10 @@ try{
  });
  const page=await context.newPage();page.on('pageerror',e=>errors.push(e.message));
  const open=async()=>{await page.waitForFunction(()=>globalThis.Huiyue);await page.evaluate(()=>Huiyue.open());await page.locator('[data-act="nav"][data-id="me"]').click();await page.locator('[data-act="settings"]').click();};
- const state=()=>page.evaluate(async()=>{const S=await import('/storage.js?v=1.3.2');return S.loadWorld(localStorage.getItem('huiyue-world'));});
+ const state=()=>page.evaluate(async()=>{const S=await import('/storage.js?v=1.4.0');return S.loadWorld(localStorage.getItem('huiyue-world'));});
  const save=async(expected)=>{
   await page.locator('[data-form=settings] > button[type=submit]').click();
-  await page.waitForFunction(async expected=>{const S=await import('/storage.js?v=1.3.2'),w=await S.loadWorld(localStorage.getItem('huiyue-world'));return Object.entries(expected).every(([key,value])=>key.split('.').reduce((o,k)=>o?.[k],w.settings)===value);},expected);
+  await page.waitForFunction(async expected=>{const S=await import('/storage.js?v=1.4.0'),w=await S.loadWorld(localStorage.getItem('huiyue-world'));return Object.entries(expected).every(([key,value])=>key.split('.').reduce((o,k)=>o?.[k],w.settings)===value);},expected);
   await page.waitForFunction(()=>document.querySelector('[name="image.key"]')?.value==='');
  };
  await page.goto('http://huiyue.test/');await open();
@@ -52,21 +52,21 @@ try{
   await box.locator('[data-model-list]').selectOption('nai-diffusion-4-5-full');
   await save({'image.url':new URL(expected).origin+(url.includes('/novelai')?'/novelai':url.includes('/nai')&&new URL(url).hostname==='api.rinko.ai'?'/nai':''),'image.imageProtocol':'novelai'});
   const image=await page.evaluate(async()=>{
-   const A=await import('/api.js?v=1.3.2'),S=await import('/storage.js?v=1.3.2'),w=await S.loadWorld(localStorage.getItem('huiyue-world'));
+   const A=await import('/api.js?v=1.4.0'),S=await import('/storage.js?v=1.4.0'),w=await S.loadWorld(localStorage.getItem('huiyue-world'));
    const result=await A.draw(w.settings.image,{positive:'flower',negative:'blur',seed:123,stage:'草稿',number:1});const asset=await S.getAsset(result.asset);return {bytes:[...new Uint8Array(await asset.blob.arrayBuffer())],params:result.params};
   });
   assert.equal(calls.at(-1).url,expected);assert.equal(calls.at(-1).body.parameters.n_samples,1);assert.equal(calls.at(-1).body.parameters.seed,123);assert.equal(calls.at(-1).body.parameters.negative_prompt,'blur');assert.deepEqual(Buffer.from(image.bytes),png);assert.ok(!JSON.stringify(image.params).includes('test-image'));
  }
- const text=await page.evaluate(async()=>{const A=await import('/api.js?v=1.3.2'),S=await import('/storage.js?v=1.3.2'),w=await S.loadWorld(localStorage.getItem('huiyue-world'));return {prompt:await A.complete(w.settings.prompt,'prompt',[{role:'user',content:'brief'}]),chat:await A.complete({...w.settings.chat,textProtocol:'responses'},'chat',[{role:'user',content:'hello'}])};});
+ const text=await page.evaluate(async()=>{const A=await import('/api.js?v=1.4.0'),S=await import('/storage.js?v=1.4.0'),w=await S.loadWorld(localStorage.getItem('huiyue-world'));return {prompt:await A.complete(w.settings.prompt,'prompt',[{role:'user',content:'brief'}]),chat:await A.complete({...w.settings.chat,textProtocol:'responses'},'chat',[{role:'user',content:'hello'}])};});
  assert.ok(text.prompt.includes('garden'));assert.equal(text.chat,'response-text');assert.equal(calls.at(-1).headers.authorization,'Bearer test-chat');assert.equal(calls.at(-2).headers.authorization,'Bearer test-prompt');
  // Real UI prompt -> native image -> stored original pipeline using the saved station settings.
- const orderId=await page.evaluate(async()=>{const C=await import('/core.js?v=1.3.2'),S=await import('/storage.js?v=1.3.2'),w=await S.loadWorld(localStorage.getItem('huiyue-world'));w.settings.randomEvents=false;w.settings.autoPrompt=false;w.settings.autoImage=false;const a=w.artists[0],o=C.quote(w,a.id,{price:a.min,days:4,brief:'flower garden'});C.pay(w,o.id);C.advance(w,1);await S.saveWorld(w);return o.id;});
+ const orderId=await page.evaluate(async()=>{const C=await import('/core.js?v=1.4.0'),S=await import('/storage.js?v=1.4.0'),w=await S.loadWorld(localStorage.getItem('huiyue-world'));w.settings.randomEvents=false;w.settings.autoPrompt=false;w.settings.autoImage=false;const a=w.artists[0],o=C.quote(w,a.id,{price:a.min,days:4,brief:'flower garden'});C.pay(w,o.id);C.advance(w,1);await S.saveWorld(w);return o.id;});
  await page.reload();await page.waitForFunction(()=>globalThis.Huiyue);await page.evaluate(()=>Huiyue.open());
  await page.locator('[data-act="nav"][data-id="bench"]').click();await page.locator(`[data-act="order"][data-id="${orderId}"]`).first().click();
  await page.locator('[data-act="versionMain"]').first().click();
- await page.waitForFunction(async id=>{const S=await import('/storage.js?v=1.3.2'),w=await S.loadWorld(localStorage.getItem('huiyue-world'));return w.commissions.find(o=>o.id===id).versions[0].status==='prompted';},orderId);
+ await page.waitForFunction(async id=>{const S=await import('/storage.js?v=1.4.0'),w=await S.loadWorld(localStorage.getItem('huiyue-world'));return w.commissions.find(o=>o.id===id).versions[0].status==='prompted';},orderId);
  await page.locator('[data-act="versionMain"]').first().click();
- await page.waitForFunction(async id=>{const S=await import('/storage.js?v=1.3.2'),w=await S.loadWorld(localStorage.getItem('huiyue-world'));return w.commissions.find(o=>o.id===id).versions[0].status==='ready';},orderId);
+ await page.waitForFunction(async id=>{const S=await import('/storage.js?v=1.4.0'),w=await S.loadWorld(localStorage.getItem('huiyue-world'));return w.commissions.find(o=>o.id===id).versions[0].status==='ready';},orderId);
  assert.ok((await state()).commissions.find(o=>o.id===orderId).versions[0].asset);
  assert.ok(!JSON.stringify(await state()).includes('test-image'));assert.deepEqual(errors,[]);
  console.log('PASS: 6 URL-only connections, independent LLM/image keys, model wrappers, NAI ZIP/JSON original bytes, persistent protocol settings, real prompt-to-image UI pipeline.');

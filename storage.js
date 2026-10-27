@@ -1,9 +1,12 @@
-import {validateWorld, uid} from './core.js?v=1.3.2';
+import {validateWorld, uid} from './core.js?v=1.4.0';
 const DB='huiyue-v1'; let db;
-export async function openDB(){if(db)return db;db=await new Promise((resolve,reject)=>{const r=indexedDB.open(DB,1);r.onupgradeneeded=()=>{r.result.createObjectStore('worlds',{keyPath:'id'});r.result.createObjectStore('assets',{keyPath:'id'});};r.onsuccess=()=>{r.result.onversionchange=()=>{r.result.close();db=undefined;};resolve(r.result);};r.onerror=()=>reject(r.error);r.onblocked=()=>reject(Error('本地数据库被另一个页面占用，请关闭其他酒馆标签页后重试'));});return db;}
+export async function openDB(){if(db)return db;db=await new Promise((resolve,reject)=>{const r=indexedDB.open(DB,2);r.onupgradeneeded=()=>{for(const name of ['worlds','assets','apiProfiles'])if(!r.result.objectStoreNames.contains(name))r.result.createObjectStore(name,{keyPath:'id'});};r.onsuccess=()=>{r.result.onversionchange=()=>{r.result.close();db=undefined;};resolve(r.result);};r.onerror=()=>reject(r.error);r.onblocked=()=>reject(Error('本地数据库被另一个页面占用，请关闭其他酒馆标签页后重试'));});return db;}
 async function transact(stores,mode,action){const d=await openDB();return new Promise((resolve,reject)=>{const t=d.transaction(stores,mode);let result;action(t,v=>result=v);t.oncomplete=()=>resolve(result);t.onerror=()=>reject(t.error);t.onabort=()=>reject(t.error||Error('保存已取消'));});}
 export async function loadWorld(id){return transact(['worlds'],'readonly',(t,set)=>{const r=t.objectStore('worlds').get(id);r.onsuccess=()=>set(r.result);});}
 export async function saveWorld(w){validateWorld(w);await transact(['worlds'],'readwrite',t=>t.objectStore('worlds').put(structuredClone(w)));}
+export async function readApiProfiles(){return transact(['apiProfiles'],'readonly',(t,set)=>{const r=t.objectStore('apiProfiles').getAll();r.onsuccess=()=>set(r.result);});}
+export async function writeApiProfiles(records){await transact(['apiProfiles'],'readwrite',t=>{const store=t.objectStore('apiProfiles');for(const record of records)store.put(record);});}
+export async function deleteApiProfile(id){await transact(['apiProfiles'],'readwrite',t=>t.objectStore('apiProfiles').delete(id));}
 export async function getAsset(id){if(!id)return null;return transact(['assets'],'readonly',(t,set)=>{const r=t.objectStore('assets').get(id);r.onsuccess=()=>set(r.result);});}
 export async function putAsset(blob,name='稿件.png'){
     if(!(blob instanceof Blob)||!/^image\/(png|jpeg|webp|gif|avif|bmp)$/.test(blob.type))throw Error('请选择 PNG、JPG、WebP、GIF、AVIF 或 BMP 图片');

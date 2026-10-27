@@ -1,5 +1,5 @@
-import {extraParams,headers,request,imageBlob} from './relay.js?v=1.3.2';
-import {zipImage} from './zip-image.js?v=1.3.2';
+import {extraParams,headers,request,imageBlob} from './relay.js?v=1.4.0';
+import {zipImage} from './zip-image.js?v=1.4.0';
 export const naiModels=['nai-diffusion-3','nai-diffusion-furry-3','nai-diffusion-4-full','nai-diffusion-4-curated-preview','nai-diffusion-4-5-full','nai-diffusion-4-5-curated','nai-diffusion-5-full','nai-diffusion-5-curated'];
 export function novelAIRequest(settings,v,prompt) {
     for(const size of [settings.width,settings.height])if(!Number.isInteger(size)||size<64||size%64)throw Error('NAI 宽高必须为 64 的整数倍');

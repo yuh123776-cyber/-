@@ -1,6 +1,6 @@
-import {apiBase,endpoint,modelIds} from './relay.js?v=1.3.2';
-import {relayPresets} from './relay-presets.js?v=1.3.2';
-import {naiModels} from './novelai.js?v=1.3.2';
+import {apiBase,endpoint,modelIds} from './relay.js?v=1.4.0';
+import {relayPresets} from './relay-presets.js?v=1.4.0';
+import {naiModels} from './novelai.js?v=1.4.0';
 
 export const connectionFields=['apiAuth','modelsPath','requestPath','extraParams','textProtocol','imageProtocol','imageResponse','imageSizeMode','imageModalities','naiSampler','naiNoise'];
 const defaults={apiAuth:'bearer',modelsPath:'',requestPath:'',extraParams:'',textProtocol:'chat',imageProtocol:'images',imageResponse:'auto',imageSizeMode:'default',imageModalities:'text-image',naiSampler:'k_euler_ancestral',naiNoise:'karras'};
