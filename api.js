@@ -1,5 +1,5 @@
-import {putAsset} from './storage.js?v=1.2.1';
-import {textInstructions,imageInstructions} from './instructions.js?v=1.2.1';
+import {putAsset} from './storage.js?v=1.2.2';
+import {textInstructions,imageInstructions} from './instructions.js?v=1.2.2';
 export const context=()=>globalThis.SillyTavern?.getContext?.()||null;
 const keys={};
 const adapters=new Map();
@@ -8,6 +8,21 @@ export function registerImageAdapter(adapter){if(!adapter||!/^custom-[a-z0-9-]+$
 export function imageAdapters(){return [...adapters.values()].map(({id,label})=>({id,label}));}
 export function setKey(kind,value){keys[kind]=value;}
 export function hasKey(kind){return !!keys[kind];}
+export async function listModels(settings,kind,signal,key=''){
+    if(!['chat','prompt','image'].includes(kind))throw Error('未知 API 配置');
+    if(!settings.url?.trim())throw Error('请先填写 API 根地址（含 /v1）');
+    const url=endpoint(settings.url.trim(),'/models');
+    let response;
+    try{response=await fetch(url,{headers:{Accept:'application/json',...((key||keys[kind])?{Authorization:`Bearer ${key||keys[kind]}`}:{})},signal,credentials:'omit',redirect:'error'});}
+    catch(error){if(signal?.aborted)throw error;throw Error('无法拉取模型列表，请检查地址、网络及服务是否允许浏览器跨域访问');}
+    if(!response.ok)throw Error(`拉取模型列表失败（HTTP ${response.status}），请检查地址、密钥权限及服务是否支持 /models`);
+    let data;try{data=await response.json();}catch{throw Error('模型列表不是有效 JSON，请检查 API 根地址');}
+    const entries=Array.isArray(data)?data:data?.data??data?.models;
+    if(!Array.isArray(entries))throw Error('服务返回的模型列表格式不受支持，请手动填写模型名');
+    const models=[...new Set(entries.map(item=>typeof item==='string'?item:item?.id).filter(id=>typeof id==='string'&&id.trim()&&id.length<=1000))].sort();
+    if(!models.length)throw Error('服务没有返回可用模型，请检查密钥权限或手动填写模型名');
+    return models;
+}
 function endpoint(base,path){const u=new URL(base);if(!['http:','https:'].includes(u.protocol)||u.username||u.password)throw Error('API 地址必须是 HTTP(S)，请勿在地址中填写密钥');return base.replace(/\/+$/,'')+path;}
 async function checked(response){if(!response.ok)throw Error(`API 请求失败（HTTP ${response.status}），请检查地址、模型和密钥`);return response;}
 export function parseJSON(s){const stripped=String(s).replace(/^\s*```(?:json)?\s*/,'').replace(/\s*```\s*$/,'');try{return JSON.parse(stripped);}catch{throw Error('AI 返回的不是有效 JSON，请重试或手动填写');}}

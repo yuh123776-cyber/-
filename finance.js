@@ -1,4 +1,4 @@
-import {uid,integer,money,record,text} from './core.js?v=1.2.1';
+import {uid,integer,money,record,text} from './core.js?v=1.2.2';
 export const regions={CN:{name:'中国大陆',channels:['支付宝','微信支付','银行卡']},US:{name:'美国',channels:['PayPal','Visa','银行卡']},JP:{name:'日本',channels:['PayPay','Visa','银行卡']},OTHER:{name:'其他国家/地区',channels:['PayPal','Visa','银行卡']}};
 export function persona(context){
     const settings=context?.powerUserSettings||{},description=String(settings.persona_description||'');
