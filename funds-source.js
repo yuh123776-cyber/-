@@ -1,5 +1,5 @@
 // Local-only reading. This module never sends persona or lorebook data to a model.
-import {persona,explicitBalance} from './finance.js?v=1.3.0';
+import {persona,explicitBalance} from './finance.js?v=1.3.1';
 export async function readExplicitFunds(context,extraBook='') {
     if(!context)throw Error('请在酒馆打开 user 人设和聊天后读取剧情资产');
     const identity=persona(context),direct=explicitBalance(identity.description);

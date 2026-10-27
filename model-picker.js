@@ -1,65 +1,54 @@
-// Bind once to the app; requests and model lists stay in the current form only.
-export function bindModelPickers(app, api) {
-    const pending = new WeakMap();
-    const control = (box, kind, field) => box.querySelector(`[name="${kind}.${field}"]`);
-    function clear(box, kind) {
-        pending.get(box)?.abort();
-        pending.delete(box);
-        box.querySelector('[data-model-list]').replaceChildren(new Option('拉取后在此选择模型', ''));
-        box.querySelector('[data-model-list]').disabled = true;
-        const button = box.querySelector('[data-fetch-models]');
-        button.disabled = control(box, kind, 'mode').value !== 'openai';
-        button.textContent = '拉取模型列表';
-        box.querySelector('[data-model-status]').textContent = button.disabled
-            ? '酒馆模式请在酒馆设置中选择模型；自定义适配器请手动填写模型名。'
-            : '读取当前地址和密钥；选择后点击「保存设置」生效，也可手动填写模型名。';
+import {connectionFields,automaticProfile} from './auto-connect.js?v=1.3.1';
+export function bindModelPickers(app,api){
+    const pending=new WeakMap(),discovered=new WeakMap();
+    const control=(box,kind,field)=>box.querySelector(`[name="${kind}.${field}"]`);
+    function apply(box,kind,settings){
+        for(const field of ['url',...connectionFields]){const input=control(box,kind,field);if(input&&settings[field]!==undefined)input.value=settings[field];}
     }
-    for (const type of ['input', 'change']) app.addEventListener(type, event => {
-        const box = event.target.closest('[data-api-kind]');
-        if (!box) return;
-        const kind = box.dataset.apiKind;
-        if (['mode', 'url', 'key', 'modelsPath', 'apiAuth', 'imageProtocol'].some(field => event.target.name === `${kind}.${field}`)) clear(box, kind);
-        if (event.target.matches('[data-model-list]') && event.target.value) {
-            const input = control(box, kind, 'model');
-            input.value = event.target.value;
-            input.dispatchEvent(new Event('input', {bubbles: true}));
+    function clear(box,kind,resetModel=false){
+        pending.get(box)?.abort();pending.delete(box);discovered.delete(box);
+        const select=control(box,kind,'model'),value=resetModel?'':select.value;
+        select.replaceChildren(new Option(value||'请先拉取模型',value));select.disabled=false;
+        const button=box.querySelector('[data-fetch-models]');
+        delete button.dataset.connecting;button.disabled=control(box,kind,'mode').value!=='openai';button.textContent='拉取模型并连接';
+        box.querySelector('[data-model-status]').textContent=button.disabled?'使用酒馆当前连接；填写站点 URL 可切换到独立 API。':'填写该站密钥，点击拉取；插件自动配置接口，选择模型后保存。';
+    }
+    for(const type of ['input','change'])app.addEventListener(type,event=>{
+        const box=event.target.closest('[data-api-kind]');if(!box)return;
+        const kind=box.dataset.apiKind;
+        if(event.target.name===`${kind}.url`){
+            if(event.target.value.trim())control(box,kind,'mode').value='openai';
+            clear(box,kind,true);
+            try{apply(box,kind,{...automaticProfile(event.target.value,kind).settings,url:event.target.value});}catch{}
+        }else if([`${kind}.mode`,`${kind}.key`].includes(event.target.name))clear(box,kind);
+        if(event.target===control(box,kind,'model')){
+            const settings=discovered.get(box)?.configurations[event.target.value];if(settings)apply(box,kind,settings);
         }
     });
-    app.addEventListener('click', async event => {
-        const button = event.target.closest('[data-fetch-models]');
-        if (!button || button.disabled) return;
+    app.addEventListener('click',async event=>{
+        const button=event.target.closest('[data-fetch-models]');if(!button||button.disabled)return;
         event.preventDefault();
-        const box = button.closest('[data-api-kind]'), kind = box.dataset.apiKind;
-        const controller = new AbortController();
-        pending.get(box)?.abort();
-        pending.set(box, controller);
-        const status = box.querySelector('[data-model-status]');
-        const select = box.querySelector('[data-model-list]');
-        select.replaceChildren(new Option('拉取后在此选择模型', ''));select.disabled = true;
-        button.disabled = true;button.textContent = '正在拉取…';status.textContent = '正在请求模型列表…';
-        let timedOut = false;
-        const timer = setTimeout(() => {timedOut = true;controller.abort();}, 20000);
-        const current = () => box.isConnected && pending.get(box) === controller;
-        try {
-            const models = await api.listModels({url: control(box, kind, 'url').value.trim(), modelsPath: control(box, kind, 'modelsPath').value, apiAuth: control(box, kind, 'apiAuth').value, imageProtocol: control(box, kind, 'imageProtocol')?.value}, kind,
-                controller.signal, control(box, kind, 'key').value);
-            if (!current() || controller.signal.aborted) return;
-            select.replaceChildren(new Option('请选择模型（也可手动填写）', ''),
-                ...models.map(id => new Option(id, id)));
-            const model = control(box, kind, 'model').value;
-            select.value = models.includes(model) ? model : '';
-            select.disabled = false;
-            status.textContent = `已拉取 ${models.length} 个模型；选择后请保存设置。列表由服务返回，请选择支持当前用途的模型。`;
-        } catch (error) {
-            if (current() && (!controller.signal.aborted || timedOut)) status.textContent = timedOut
-                ? '拉取超时，请检查服务后重试。' : error.message;
-        } finally {
+        const box=button.closest('[data-api-kind]'),kind=box.dataset.apiKind,controller=new AbortController();
+        pending.get(box)?.abort();pending.set(box,controller);
+        const status=box.querySelector('[data-model-status]'),select=control(box,kind,'model');
+        button.disabled=true;button.dataset.connecting='true';button.textContent='正在连接…';status.textContent='正在识别站点并读取模型列表…';
+        let timedOut=false;const timer=setTimeout(()=>{timedOut=true;controller.abort();},20000);
+        const current=()=>box.isConnected&&pending.get(box)===controller;
+        try{
+            const result=await api.connect({url:control(box,kind,'url').value.trim()},kind,controller.signal,control(box,kind,'key').value);
+            if(!current()||controller.signal.aborted)return;
+            discovered.set(box,result);
+            const previous=select.value;
+            select.replaceChildren(new Option('请选择模型',''),...result.models.map(id=>new Option(id,id)));
+            select.value=result.models.includes(previous)?previous:result.models.length===1?result.models[0]:'';
+            const settings=result.configurations[select.value||result.models[0]];apply(box,kind,settings);
+            select.disabled=false;
+            status.textContent=result.verified?`已识别${result.label}，读取到 ${result.models.length} 个模型。接口已自动配置，选择模型后保存。`:`已识别${result.label}，但站点未提供可读取的模型列表；下方为常用 NAI 参考模型，连接尚未验证。请选择站点支持的模型后保存。`;
+        }catch(error){
+            if(current()&&(!controller.signal.aborted||timedOut))status.textContent=timedOut?'连接超时，请检查站点 URL 和网络后重试。':error.message;
+        }finally{
             clearTimeout(timer);
-            if (current()) {
-                pending.delete(box);
-                button.disabled = control(box, kind, 'mode').value !== 'openai';
-                button.textContent = '拉取模型列表';
-            }
+            if(current()){pending.delete(box);delete button.dataset.connecting;button.disabled=control(box,kind,'mode').value!=='openai';button.textContent='拉取模型并连接';}
         }
     });
 }

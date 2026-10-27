@@ -1,8 +1,9 @@
-import {novelAIRequest,novelAIBlob} from './novelai.js?v=1.3.0';
-import * as R from './relay.js?v=1.3.0';
-export {validateRelay} from './relay.js?v=1.3.0';
-import {putAsset} from './storage.js?v=1.3.0';
-import {textInstructions,imageInstructions} from './instructions.js?v=1.3.0';
+import {discoverConnection} from './auto-connect.js?v=1.3.1';
+import {novelAIRequest,novelAIBlob} from './novelai.js?v=1.3.1';
+import * as R from './relay.js?v=1.3.1';
+export {validateRelay} from './relay.js?v=1.3.1';
+import {putAsset} from './storage.js?v=1.3.1';
+import {textInstructions,imageInstructions} from './instructions.js?v=1.3.1';
 export const context=()=>globalThis.SillyTavern?.getContext?.()||null;
 const keys={};
 const adapters=new Map();
@@ -17,6 +18,7 @@ export async function listModels(settings,kind,signal,key=''){
     const data=await R.requestJSON(R.endpoint(settings,'models'),{headers:R.headers(settings,key||keys[kind]),signal});
     return R.modelIds(data);
 }
+export async function connect(settings,kind,signal,key=''){return discoverConnection(settings.url,kind,(candidate,requestSignal)=>R.requestJSON(R.endpoint(candidate,'models'),{headers:R.headers(candidate,key||keys[kind]),signal:requestSignal}),signal);}
 async function checked(response){if(!response.ok)throw Error(`API 请求失败（HTTP ${response.status}），请检查地址、模型和密钥`);return response;}
 export function parseJSON(s){const stripped=String(s).replace(/^\s*```(?:json)?\s*/,'').replace(/\s*```\s*$/,'');try{return JSON.parse(stripped);}catch{throw Error('AI 返回的不是有效 JSON，请重试或手动填写');}}
 export async function complete(settings,kind,messages,signal){

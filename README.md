@@ -1,47 +1,43 @@
-# 绘约 · SillyTavern 约稿模拟扩展 v1.3.0
+# 绘约 · SillyTavern 约稿模拟扩展 v1.3.1
 
 面向手机竖屏的虚拟约稿平台。六个页面是「橱窗、稿拍、广场、消息、工作台、我的」。所有交易使用虚拟绘币，初始甲方账户赠送 10,000 绘币，不接真实支付。
 
 代码按 SillyTavern 官方 release 1.19.0 的 getContext、generateRaw、消息事件与 Image Generation 命令接口制作。不需要酒馆助手、Node 依赖安装或构建。已做浏览器端功能测试和酒馆接口模拟测试，尚未在用户实际酒馆安装中联调，也未接入真实计费模型验证。
 
-## v1.3.0 · 第三方中转与 NAI 原生生图
+## v1.3.1 · URL + 密钥，自动兼容
 
-在三处 API 配置中均可选择「独立 API / 第三方中转」。可从站点预设填入配置，再输入该站自己的 API Key，拉取模型并保存。预设只修改表单，不发起模型请求，也不自动保存。
+打开「我的 → 设置、AI 接口与存档」。私信、提示词 AI、绘图服务均使用相同流程：
 
-| 用途 / 预设 | API 地址 | 默认请求路径 | 模型列表路径 |
-| --- | --- | --- | --- |
-| 砂糖 Tang / NAI | `https://tang.iisbo.com/novelai` | `ai/generate-image`（相对地址） | `/v1/models` |
-| Rinko / NAI | `https://api.rinko.ai/nai` | `ai/generate-image`（相对地址） | `/v1/models` |
-| Rinko / YesNovelAI (ynai) | `https://ynai.rinko.ai` | `/v1/nai/generate-image` | `/v1/models` |
-| Rinko / YesNovelAI (nai) | `https://nai.rinko.ai` | `/v1/nai/generate-image` | `/v1/models` |
-| Rinko / 文本、提示词 | `https://api.rinko.ai/v1` | `chat/completions` | `models` |
-| GG 公益站 / 文本、提示词 | `https://gcli.ggchan.dev/v1` | `chat/completions` | `models` |
+1. 填写站点 URL 和该站 API Key。填写 URL 会自动选择独立 API 调用。
+2. 点击「拉取模型并连接」。插件自动匹配协议、模型列表路径、生图路径与默认参数。
+3. 在唯一的「模型」下拉框选择模型，点击「保存设置」。
 
-### 怎样配置
+不需要选择站点预设、协议、鉴权方式、接口路径或填写 JSON；界面没有高级兼容设置。原有存档和已经保存的模型继续保留，密钥仍只在当前页面内存中保存。
 
-1. 提示词 AI 可选 Rinko 或 GG 预设，填写该站密钥，点击「拉取模型列表」后选择支持文本输出的模型。私信 AI 可独立使用另一站或酒馆当前模型。
-2. 绘图服务可选对应 NAI 站点预设，填写该站的 API Token，再拉取模型。拉取不可用时可手动填写，或在兼容设置中使用「本地参考」NAI 模型；本地参考不代表该站开放了对应模型。砂糖页面说明 API 应使用站内创建的 sk- 密钥；YesNovelAI 使用其站内 API Token。不要混用不同站点的密钥。
-3. 在「中转站兼容设置」确认协议和接口路径。NAI 宽高必须为 64 的整数倍；可先使用 832×1216、28 步，再按站点模型要求调整。选择模型之后点击「保存设置」。
-4. NAI 使用原生 `input/model/action/parameters` 请求，正向词和负向词分开，发送实际种子、宽高、steps、CFG、采样器、噪声调度；支持 V3、V4/V4.5 和 V5 的参数结构。支持 ZIP（存储/Deflate）、PNG/JPEG 二进制和 JSON Base64 返回，解包后保存原始字节。
+### 自动识别范围
 
-### 其他中转接口
+| 输入的站点 URL | 用途 | 插件自动处理 |
+| --- | --- | --- |
+| `https://tang.iisbo.com/novelai` 或域名 | 生图 | NAI 原生参数，`/novelai` 路径前缀，ZIP/JSON 图片 |
+| `https://api.rinko.ai/nai` | 生图 | NAI 原生参数，`/nai` 路径前缀 |
+| `https://ynai.rinko.ai/` | 生图 | YesNovelAI 原生请求体和 JSON 图片返回 |
+| `https://nai.rinko.ai/` | 生图 | YesNovelAI 原生请求体和 JSON 图片返回 |
+| `https://api.rinko.ai/v1` 或域名 | 私信、提示词 | OpenAI 兼容文本；按模型元信息识别 Responses |
+| `https://gcli.ggchan.dev/` | 私信、提示词 | OpenAI 兼容文本 |
 
-- OpenAI 兼容地址可填域名、带版本前缀的根地址，或标准完整接口地址；仅填域名时默认补 `/v1`，已有 `/api/v1` 等前缀会保留。NAI 不自动补 `/v1`。
-- 文本支持 Chat Completions 和 Responses，识别字符串、文本内容数组和 Responses output 文本。
-- 生图支持 Images、Chat Completions 聊天式生图和 NovelAI。Images 可配置是否发送尺寸和返回格式；聊天式生图支持图片内容数组、images 字段和 Markdown 图片，支持 data URL 与可下载 HTTP(S) 图片。
-- 模型列表支持字符串数组、id/name/model 对象及常见 data/models 包装；保留站点返回的精确模型名和自定义别名，不按模型名称猜测能力。
-- 模型列表与生成路径可分别设置：相对路径接在根地址后；以 `/` 开头的路径从站点根开始。NAI 完整的 `/ai/generate-image` 地址不会重复拼接。若一个中转要求直接 POST 到 `/nai` 或 `/novelai`，将「生图请求路径」明确改成该绝对路径即可。
-- Bearer 为默认鉴权；也支持 x-api-key 和 api-key 请求头。改变请求头不等于支持 Claude/Gemini 原生请求体；应选择该站的兼容协议入口。
-- 可填写附加 JSON 参数，例如文本的 `{"temperature":0.7}`、Images 的 `{"quality":"high"}`、NAI 的 `{"parameters":{"cfg_rescale":0.2}}`。这些参数随存档保存；密钥只能填 Key 框，不能放入附加 JSON。
-- 失败不会自动换站、改协议或重复提交生成请求。图片 URL 下载不携带 API Key 或浏览器登录 Cookie。
+绘图服务填写 Rinko 纯域名时默认识别为 NAI；明确填写 `/v1` 则使用其 OpenAI 兼容图片接口。站点识别使用精确域名匹配，不会把密钥发送到相似域名或跳转目标。
 
-### 核对范围
+其他兼容站点自动规范化常见 URL，并在同一站点内以 GET 尝试最多三个常见模型列表路径。站点提供模型能力元信息时，插件按信息选择 Chat、Responses、Images 或聊天式生图；没有元信息时使用通用兼容协议。不同模型的接口配置会跟随下拉选择切换并随设置保存。
 
-已读取砂糖的公开对接页面、Rinko 的公开站点信息、YesNovelAI 的公开接入文档，并实际读取两个 YesNovelAI 站点的 `/v1/models`。砂糖/Rinko `/nai` 按提供的 Base URL 作为前缀拼接 NAI 标准路径；所有路径均可调整。生成链路使用模拟接口验证，**没有使用真实密钥或收费调用，尚未在这些站点完成真实生图验收**。
+### 连接状态说明
 
-浏览器直连要求服务允许 CORS；API 兼容能力、账号分组、额度、模型权限和尺寸限制仍以站点为准。专用异步任务、原生 Claude/Gemini、多图输入和局部重绘需专用适配器；不能只替换地址就保证任意接口通用。
+- 成功读取模型列表表示模型发现成功，不代表已经执行收费生图/文本生成。自动识别只读取模型列表，不会自动提交生成或重试收费任务。
+- 密钥错误、权限不足和限流会直接提示，不轮流尝试其他接口。改 URL 或密钥会取消旧请求，旧返回不能覆盖新设置。
+- 某些 NAI 中转没有模型列表接口。此时插件仍能匹配其 NAI 协议，并提供明确标注的常用参考模型，同时提示「连接尚未验证」；不会把本地列表伪装成成功拉取。
+- 如果未知站点使用非标准私有协议、不同鉴权机制、禁止跨域或不提供可识别信息，插件会显示连接失败。仅凭 URL/密钥无法保证推断任意私有 API，后续应由插件增加适配，无需用户填写兼容参数。
+- 旧版手动配置字段作为内部连接数据保留，升级不会删除已经可用的连接。重新拉取或更换 URL 时改为自动识别配置。
 
-参考：[砂糖对接页面](https://tang.iisbo.com/std/image.html)、[YesNovelAI 文档](https://nai.rinko.ai/docs)、[New API 接口](https://docs.newapi.pro/zh/docs/guide/feature-guide/user/api)、[NovelAI 官方接口](https://image.novelai.net/docs/index.html)。
+生图仍支持 NAI 正反向词、种子、步数、CFG、ZIP/JSON 原图，标准 Images 和聊天式图片返回；图像尺寸等创作选项继续保留。没有加入通用参考图、局部重绘或专用异步任务协议。验证使用模拟生成响应，未使用用户真实密钥或调用收费模型。
 
 ## v1.2.2 · API 模型列表选择
 

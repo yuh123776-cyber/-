@@ -1,4 +1,4 @@
-import {validateWorld, uid} from './core.js?v=1.3.0';
+import {validateWorld, uid} from './core.js?v=1.3.1';
 const DB='huiyue-v1'; let db;
 export async function openDB(){if(db)return db;db=await new Promise((resolve,reject)=>{const r=indexedDB.open(DB,1);r.onupgradeneeded=()=>{r.result.createObjectStore('worlds',{keyPath:'id'});r.result.createObjectStore('assets',{keyPath:'id'});};r.onsuccess=()=>{r.result.onversionchange=()=>{r.result.close();db=undefined;};resolve(r.result);};r.onerror=()=>reject(r.error);r.onblocked=()=>reject(Error('本地数据库被另一个页面占用，请关闭其他酒馆标签页后重试'));});return db;}
 async function transact(stores,mode,action){const d=await openDB();return new Promise((resolve,reject)=>{const t=d.transaction(stores,mode);let result;action(t,v=>result=v);t.oncomplete=()=>resolve(result);t.onerror=()=>reject(t.error);t.onabort=()=>reject(t.error||Error('保存已取消'));});}

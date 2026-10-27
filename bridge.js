@@ -1,5 +1,5 @@
-import {uid,record,placeholder,order,text} from './core.js?v=1.3.0';
-import {context,complete,parseJSON} from './api.js?v=1.3.0';
+import {uid,record,placeholder,order,text} from './core.js?v=1.3.1';
+import {context,complete,parseJSON} from './api.js?v=1.3.1';
 export function currentCharacter(){const c=context();return c?.characters?.[c.characterId]||null;}
 export function linkCurrent(a){const ch=currentCharacter();if(!ch)throw Error('请先在酒馆打开一位角色的聊天');a.linked={avatar:ch.avatar,name:ch.name,description:text(ch.description||ch.data?.description,9000),personality:text(ch.personality||ch.data?.personality,4000),scenario:text(ch.scenario||ch.data?.scenario,3000)};a.personality=a.linked.personality||a.personality;}
 export async function npcCandidates(w){const c=context(),ch=currentCharacter();if(!ch)throw Error('请先打开角色聊天');let lore='';
