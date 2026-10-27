@@ -38,7 +38,7 @@ try{
   assert.equal(await box.locator(`[name="${kind}.model"]`).inputValue(),kind==='image'?'image-model':'text-model');
  }
  await page.locator('[data-form=settings] > button[type=submit]').click();
- await page.locator('[data-api-kind="chat"] [name="chat.key"]').waitFor();
+ await page.waitForFunction(()=>document.querySelector('[name="chat.key"]')?.value==='');
  assert.equal(await page.locator('[name="chat.key"]').inputValue(),'');
  const box=page.locator('[data-api-kind="chat"]'),button=box.locator('[data-fetch-models]');
  await button.click();await box.locator('[data-model-list]:enabled').waitFor();assert.equal(calls.at(-1).headers.authorization,'Bearer draft-chat');
@@ -50,6 +50,7 @@ try{
  await page.waitForTimeout(100);assert.equal(await box.locator('[data-model-list]').isDisabled(),true);
  await box.locator('[name="chat.model"]').fill('manual-model');
  await page.locator('[data-form=settings] > button[type=submit]').click();
+ await page.waitForFunction(async()=>{const S=await import('/storage.js?v=1.2.2');return (await S.loadWorld(localStorage.getItem('huiyue-world')))?.settings.chat.model==='manual-model';});
  await page.reload();await open();assert.equal(await page.locator('[name="chat.model"]').inputValue(),'manual-model');
  const saved=await page.evaluate(async()=>{const S=await import('/storage.js?v=1.2.2');return JSON.stringify(await S.loadWorld(localStorage.getItem('huiyue-world')));});
  assert.ok(!saved.includes('draft-chat'));assert.deepEqual(errors,[]);
