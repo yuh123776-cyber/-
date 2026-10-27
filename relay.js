@@ -63,14 +63,14 @@ export function imageRequest(settings,prompt) {
 }
 export async function request(url,options) {
     let response;
-    try{response=await fetch(url,{...options,credentials:'omit',redirect:'error'});}catch(error){if(options.signal?.aborted)throw error;throw Error('API 连接失败，请检查地址、网络和中转站的浏览器跨域许可');}
-    if(!response.ok){const error=Error(`API 请求失败（HTTP ${response.status}）：${response.status===401||response.status===403?'请检查中转站密钥、分组和模型权限':response.status===404?'请检查 API 地址和接口路径':response.status===429?'请求过于频繁或额度不足，请稍后检查':response.status===400||response.status===422?'请检查模型所需协议、尺寸和附加参数':'请检查中转站状态和模型支持情况'}`);error.status=response.status;throw error;}
+    try{response=await fetch(url,{...options,credentials:'omit',redirect:'error'});}catch(error){if(options.signal?.aborted)throw error;throw Error('API 连接失败，请检查地址、网络和API 站点的浏览器跨域许可');}
+    if(!response.ok){const error=Error(`API 请求失败（HTTP ${response.status}）：${response.status===401||response.status===403?'请检查API 站点密钥、分组和模型权限':response.status===404?'请检查 API 地址和接口路径':response.status===429?'请求过于频繁或额度不足，请稍后检查':response.status===400||response.status===422?'请检查模型所需协议、尺寸和附加参数':'请检查API 站点状态和模型支持情况'}`);error.status=response.status;throw error;}
     return response;
 }
 export async function requestJSON(url,options) {
     const response=await request(url,options);
     let data;try{data=await response.json();}catch{throw Object.assign(Error('API 未返回 JSON，请检查站点 URL 是否正确'),{code:'invalid-json'});}
-    if(data?.error||data?.success===false||data?.status==='failed')throw Error('中转站返回错误，请检查模型权限、余额和接口参数；本次没有自动重试');
+    if(data?.error||data?.success===false||data?.status==='failed')throw Error('API 站点返回错误，请检查模型权限、余额和接口参数；本次没有自动重试');
     return data;
 }
 function imageEntry(data) {

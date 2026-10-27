@@ -1,4 +1,4 @@
-import {connectionFields,automaticProfile} from './auto-connect.js?v=1.3.1';
+import {connectionFields,automaticProfile} from './auto-connect.js?v=1.3.2';
 export function bindModelPickers(app,api){
     const pending=new WeakMap(),discovered=new WeakMap();
     const control=(box,kind,field)=>box.querySelector(`[name="${kind}.${field}"]`);

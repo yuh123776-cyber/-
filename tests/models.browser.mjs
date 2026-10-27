@@ -10,7 +10,7 @@ try{
  let fail=false,delay=false,release;
  await context.route('http://huiyue.test/**',async route=>{
   const url=new URL(route.request().url());
-  if(url.pathname==='/')return route.fulfill({contentType:'text/html',body:'<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="/style.css"><script type="module" src="/loader-v1.3.1.js"></script>'});
+  if(url.pathname==='/')return route.fulfill({contentType:'text/html',body:'<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="/style.css"><script type="module" src="/loader-v1.3.2.js"></script>'});
   const file=path.resolve(root,url.pathname.slice(1));
   if(!file.startsWith(root+path.sep))return route.abort();
   return route.fulfill({contentType:file.endsWith('.js')?'text/javascript':'text/css',body:await fs.readFile(file)});
@@ -49,9 +49,9 @@ try{
  await page.waitForTimeout(100);assert.equal(await box.locator('[data-model-list] option').count(),1);
  await button.click();await box.locator('[data-model-status]').filter({hasText:'读取到'}).waitFor();await box.locator('[name="chat.model"]').selectOption('text-model');
  await page.locator('[data-form=settings] > button[type=submit]').click();
- await page.waitForFunction(async()=>{const S=await import('/storage.js?v=1.3.1');return (await S.loadWorld(localStorage.getItem('huiyue-world')))?.settings.chat.model==='text-model';});
+ await page.waitForFunction(async()=>{const S=await import('/storage.js?v=1.3.2');return (await S.loadWorld(localStorage.getItem('huiyue-world')))?.settings.chat.model==='text-model';});
  await page.reload();await open();assert.equal(await page.locator('[name="chat.model"]').inputValue(),'text-model');
- const saved=await page.evaluate(async()=>{const S=await import('/storage.js?v=1.3.1');return JSON.stringify(await S.loadWorld(localStorage.getItem('huiyue-world')));});
+ const saved=await page.evaluate(async()=>{const S=await import('/storage.js?v=1.3.2');return JSON.stringify(await S.loadWorld(localStorage.getItem('huiyue-world')));});
  assert.ok(!saved.includes('draft-chat'));assert.deepEqual(errors,[]);
  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
  console.log('PASS: three API pickers, draft/saved keys, safe options, select/save/reload, HTTP failure/retry, stale response, URL-only configuration, mobile layout, no persisted key.');

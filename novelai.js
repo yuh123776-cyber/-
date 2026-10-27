@@ -1,5 +1,5 @@
-import {extraParams,headers,request,imageBlob} from './relay.js?v=1.3.1';
-import {zipImage} from './zip-image.js?v=1.3.1';
+import {extraParams,headers,request,imageBlob} from './relay.js?v=1.3.2';
+import {zipImage} from './zip-image.js?v=1.3.2';
 export const naiModels=['nai-diffusion-3','nai-diffusion-furry-3','nai-diffusion-4-full','nai-diffusion-4-curated-preview','nai-diffusion-4-5-full','nai-diffusion-4-5-curated','nai-diffusion-5-full','nai-diffusion-5-curated'];
 export function novelAIRequest(settings,v,prompt) {
     for(const size of [settings.width,settings.height])if(!Number.isInteger(size)||size<64||size%64)throw Error('NAI 宽高必须为 64 的整数倍');
@@ -20,7 +20,7 @@ export async function novelAIBlob(url,settings,key,body,signal) {
     if(bytes[0]===0x50&&bytes[1]===0x4b)return zipImage(bytes,signal);
     if(bytes[0]===0x89&&bytes[1]===0x50)return new Blob([bytes],{type:'image/png'});
     if(bytes[0]===0xff&&bytes[1]===0xd8)return new Blob([bytes],{type:'image/jpeg'});
-    let data;try{data=JSON.parse(new TextDecoder().decode(bytes));}catch{throw Error('NAI 未返回有效图片、ZIP 或 JSON，请检查中转地址与协议');}
-    if(data?.error||data?.status==='failed')throw Error('NAI 中转返回错误，请检查密钥、额度和模型权限');
+    let data;try{data=JSON.parse(new TextDecoder().decode(bytes));}catch{throw Error('NAI 未返回有效图片、ZIP 或 JSON，请检查服务地址与协议');}
+    if(data?.error||data?.status==='failed')throw Error('NAI 服务返回错误，请检查密钥、额度和模型权限');
     return imageBlob(data,url,signal);
 }

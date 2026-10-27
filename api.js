@@ -1,9 +1,9 @@
-import {discoverConnection} from './auto-connect.js?v=1.3.1';
-import {novelAIRequest,novelAIBlob} from './novelai.js?v=1.3.1';
-import * as R from './relay.js?v=1.3.1';
-export {validateRelay} from './relay.js?v=1.3.1';
-import {putAsset} from './storage.js?v=1.3.1';
-import {textInstructions,imageInstructions} from './instructions.js?v=1.3.1';
+import {discoverConnection} from './auto-connect.js?v=1.3.2';
+import {novelAIRequest,novelAIBlob} from './novelai.js?v=1.3.2';
+import * as R from './relay.js?v=1.3.2';
+export {validateRelay} from './relay.js?v=1.3.2';
+import {putAsset} from './storage.js?v=1.3.2';
+import {textInstructions,imageInstructions} from './instructions.js?v=1.3.2';
 export const context=()=>globalThis.SillyTavern?.getContext?.()||null;
 const keys={};
 const adapters=new Map();
@@ -52,13 +52,13 @@ export async function draw(settings,v,signal){
     }else if(settings.imageProtocol==='novelai'){
         const url=R.endpoint(settings,'image');
         blob=await novelAIBlob(url,settings,keys.image,novelAIRequest(settings,v,sentPrompt),signal);
-        params.note='NovelAI 原生中转；发送独立正反向词、种子、尺寸、步数及 CFG，原始图片解包后保存。';
+        params.note='NovelAI 原生服务；发送独立正反向词、种子、尺寸、步数及 CFG，原始图片解包后保存。';
     }else{
         const url=R.endpoint(settings,'image');
         const body=R.imageRequest(settings,sentPrompt+(v.negative?'\nNegative prompt: '+v.negative:''));
         const data=await R.requestJSON(url,{method:'POST',headers:R.headers(settings,keys.image,true),body:JSON.stringify(body),signal});
         blob=await R.imageBlob(data,url,signal);
-        params.note='中转兼容接口（'+(settings.imageProtocol==='chat'?'聊天式生图':'Images')+'）；仅发送一次生成请求，seed/steps/cfg 等能力由服务决定。';
+        params.note='服务兼容接口（'+(settings.imageProtocol==='chat'?'聊天式生图':'Images')+'）；仅发送一次生成请求，seed/steps/cfg 等能力由服务决定。';
     }
     if(signal?.aborted)throw Error('已放弃本次结果');
     const ext={'image/jpeg':'jpg','image/webp':'webp','image/gif':'gif'}[blob.type]||'png';

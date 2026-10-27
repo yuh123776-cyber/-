@@ -1,4 +1,4 @@
-import {uid,text} from './core.js?v=1.3.1';
+import {uid,text} from './core.js?v=1.3.2';
 export function addSticker(w,{name,description,asset}){
     name=text(name,50);if(!name)throw Error('请为表情包起一个名字');if(typeof asset!=='string'||!asset)throw Error('请上传表情图片');
     const sticker={id:uid(),name,description:text(description,200),asset};(w.stickers||=[]).push(sticker);return sticker;
