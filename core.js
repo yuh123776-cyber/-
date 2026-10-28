@@ -1,3 +1,5 @@
+import {validateOffer} from './pricing.js?v=1.5.0';
+import {nextSeed} from './render-presets.js?v=1.5.0';
 // IDs are local record identifiers, not authentication tokens. getRandomValues is
 // available on ordinary HTTP origins where randomUUID may be unavailable.
 export function uid() {
@@ -37,7 +39,7 @@ export function newWorld(id = uid()) {
     return {schema:1,id,day:1,role:'client',artistActivated:false, accounts:{client:{id:uid(),name:'委托人',bio:'把脑海里的故事画下来。',avatar:null,balance:10000},artist:{id:uid(),name:'我的画室',bio:'今天也想画点喜欢的东西。',avatar:null,balance:0,min:280,max:1200,days:12,revisions:2}},
         artists:a, commissions:[], auctions:[], posts:[], projects:[], messages:{}, ledger:[], events:[], bridge:[],
         settings:{theme:'sky',accent:'#76aaca',radius:22,fontSize:15,background:null,customCSS:'',randomEvents:true,autoPrompt:false,autoImage:false,bridgeEnabled:false,inject:false,sharedProfile:false,
-            chat:{mode:'tavern',url:'',model:'',template:'你是虚拟约稿平台上的画师。保持角色一致，用中文自然交流。报价只是建议，以系统订单为准。'},
+            chat:{mode:'tavern',url:'',model:'',template:'按本次提供的身份和资料进行创作或沟通，保持角色一致。订单、余额等状态以系统记录为准。'},
             prompt:{mode:'tavern',url:'',model:'',instructions:'',template:'把约稿需求整理为绘图提示词。仅输出 JSON：{"positive":"英文正向提示词","negative":"英文负向提示词"}。保留角色外貌、服装、构图与上版要求。'},
             image:{mode:'tavern',url:'',model:'',instructions:'',width:768,height:1024,steps:28,cfg:7}},notifications:[]};
 }
@@ -94,7 +96,7 @@ export function message(w, artistId, role, body, extra = {}) {
 export function customer(w,name,id){
     const customers=w.customers||=[];
     const found=customers.find(person=>id?person.id===id:person.name===name);if(found)return found;
-    const person={id:id||'customer-'+uid(),name:text(name||'虚拟客户',50),bio:'想为自己的 OC 寻找合适的画师，按双方约定沟通与验收。',personality:'有自己的审美偏好，认真沟通需求和预算。',avatar:null};customers.push(person);return person;
+    const person={id:id||'customer-'+uid(),name:text(name||'虚拟客户',50),bio:'想为自己的 OC 寻找合适的画师，按双方约定沟通与验收。',personality:'有自己的审美偏好，认真沟通需求和预算。',avatar:(w.settings.customerAvatarPool||[])[Math.floor(Math.random()*(w.settings.customerAvatarPool?.length||1))]?.asset||null};customers.push(person);return person;
 }
 export function isCustomer(w,id){return (w.customers||[]).some(person=>person.id===id);}
 export function contact(w,id){return (w.customers||[]).find(person=>person.id===id)||w.artists.find(person=>person.id===id)||null;}
@@ -117,15 +119,15 @@ export function migrateCustomerThreads(w){
 export function quote(w, artistId, options) {
     const a=w.artists.find(a=>a.id===artistId); if(!a) throw Error('找不到画师');
     if(!a.open || a.available>w.day) throw Error('画师当前暂不接稿或尚未到档期');
-    const price=integer(options.price, a.min, a.max), days=integer(options.days??a.days,1,365);
+    const pricing=validateOffer(a,options),price=integer(options.price,1), days=integer(options.days??a.days,1,365);
     if(text(options.brief).length<5) throw Error('请至少用五个字描述约稿需求');
-    const o={id:uid(),artistId,owner:'client',title:text(options.title||'我的委托',100),brief:text(options.brief),price,days,stage:0,status:'quoted',createdDay:w.day,revisions:0,maxRevisions:a.revisions,versions:[],commercial:!!options.commercial,dueDay:null,paused:false};
+    const o={id:uid(),artistId,owner:'client',title:text(options.title||'我的委托',100),brief:text(options.brief),price,days,stage:0,status:'quoted',createdDay:w.day,revisions:0,maxRevisions:a.revisions,versions:[],commercial:!!options.commercial,pricing,giftOffer:!!options.giftOffer,projectId:options.projectId||null,dueDay:null,paused:false};
     w.commissions.push(o); record(w,`与 ${a.name} 商议「${o.title}」，待确认 ${price} 绘币`); return o;
 }
 export function pay(w,id) {
     const o=order(w,id);if(o.status!=='quoted') throw Error('订单已经处理，不能重复付款');
     money(w,o.owner,-o.price,'委托托管',o.id);o.status='working';o.startDay=w.day;o.dueDay=w.day+o.days;o.nextDay=w.day+Math.max(1,Math.ceil(o.days/4));
-    record(w,`「${o.title}」已确认，${o.price} 绘币进入托管`);return o;
+    record(w,`「${o.title}」已确认，${o.price} 绘币进入托管`);if(o.giftOffer&&!o.giftCreated){o.giftCreated=true;createGiftOrder(w,o.artistId,'附赠 · '+o.title,o.id);}return o;
 }
 export function order(w,id) { const o=w.commissions.find(x=>x.id===id);if(!o)throw Error('找不到订单');return o; }
 export function placeholder(w,id,note='') {
@@ -136,9 +138,10 @@ export function placeholder(w,id,note='') {
     record(w,`「${o.title}」提交 ${v.stage} V${v.number} 占位`);notify(w,`「${o.title}」${v.stage}等待验收`,o.owner);return v;
 }
 export function findVersion(w,id) {for(const o of w.commissions){const v=o.versions.find(v=>v.id===id);if(v)return {o,v};}throw Error('找不到稿件版本');}
+export function activeVersion(o){return o.versions.filter(v=>!v.detached&&v.stage===STAGES[o.stage]).at(-1)||null;}
 export function approve(w,id) {
     const o=order(w,id);if(o.status!=='review')throw Error('当前没有待验收稿件');
-    const v=o.versions.at(-1); if(!v?.asset && !v?.note)throw Error('请先上传图片或填写文字稿件说明后验收');
+    const v=activeVersion(o); if(!v?.asset && !v?.note)throw Error('请先上传图片或填写文字稿件说明后验收');
     v.accepted=true;o.paused=false;
     if(o.stage===3){o.status='complete';if(o.owner==='artist')money(w,'artist',o.price,'委托结算',o.id);record(w,`「${o.title}」已完成验收`);}
     else{o.stage++;o.status='working';o.nextDay=w.day+Math.max(1,Math.ceil(o.days/4));record(w,`「${o.title}」通过验收，进入${STAGES[o.stage]}`);}
@@ -150,10 +153,23 @@ export function revise(w,id,note) {
     o.revisions++;o.status='working';o.paused=false;o.nextDay=w.day+1;o.lastRevision=text(note);
     message(w,threadForOrder(o),o.owner,note,{from:o.owner==='artist'?'client':'user',orderId:o.id}); record(w,`「${o.title}」请求修改：${text(note,200)}`);
 }
+export function createGiftOrder(w,artistId,title='赠图',parentOrderId=null){
+    const o={id:uid(),artistId,owner:'client',title:text(title,100),brief:'画师自愿附赠的图片。',price:0,gift:true,parentOrderId,days:1,stage:3,status:'working',createdDay:w.day,revisions:0,maxRevisions:1,versions:[],dueDay:w.day+1,nextDay:w.day+1,paused:false};
+    w.commissions.push(o);const v=placeholder(w,o.id,'画师的额外赠图，可生成或上传后查看。');record(w,'收到一份赠图约定');return {o,v};
+}
+export function rerender(w,id,note='',countRevision=false){
+    const {o,v}=findVersion(w,id);note=text(note);
+    if(!note&&!v.positive)throw Error('先生成或编辑正向提示词，才能只换种子重绘');
+    if(note&&countRevision&&o.revisions>=o.maxRevisions)throw Error('已达到约定修改次数');
+    const n={...structuredClone(v),id:uid(),number:o.versions.length+1,parentId:v.id,day:w.day,asset:null,accepted:false,seed:nextSeed(v.seed),status:note?'empty':'prompted',source:'placeholder',error:null,params:null,revisionNote:note,basePositive:v.positive,baseNegative:v.negative,baseSeed:v.seed,note:note||v.note};
+    o.versions.push(n);if(note){o.lastRevision=note;if(countRevision)o.revisions++;}
+    if(['working','review'].includes(o.status)&&n.stage===STAGES[o.stage]){o.status='review';o.paused=true;n.detached=false;}else n.detached=true;
+    message(w,threadForOrder(o),o.owner,note?'已记录本版修改意见：'+note:'新建同提示词重绘版本。',{from:o.owner==='artist'?'user':'artist',versionId:n.id,orderId:o.id});return n;
+}
 export function cancelOrder(w,id) {
     const o=order(w,id);if(['complete','cancelled'].includes(o.status))throw Error('订单已结束');
     if(o.status!=='quoted' && o.owner==='client')money(w,'client',o.price,'协商取消退款',o.id);
-    o.status='cancelled';record(w,`「${o.title}」已取消（模拟协商全额退款）`);
+    o.status='cancelled';record(w,`「${o.title}」已取消（协商全额退款）`);
 }
 export function auction(w,input) {
     const type=['成稿','OC 人设','画师档期'].includes(input.type)?input.type:'成稿';
@@ -212,8 +228,10 @@ export function validateWorld(w) {
     for(const p of w.posts)if(!p||typeof p.body!=='string'||!Array.isArray(p.comments)||!Number.isSafeInteger(p.likes)||p.likes<0)throw Error('动态资料损坏');
     for(const ms of Object.values(w.messages))if(!Array.isArray(ms)||ms.some(m=>!m||typeof m.body!=='string'))throw Error('私信记录损坏');
     for(const p of w.projects)if(!p||typeof p.title!=='string'||!Array.isArray(p.applicants))throw Error('企划记录损坏');
+    for(const p of w.projects)if(p.invitations!==undefined){if(!Array.isArray(p.invitations))throw Error('企划邀请记录损坏');const ids=new Set();for(const item of p.invitations){if(!item||typeof item.id!=='string'||ids.has(item.id)||typeof item.artistId!=='string'||!['pending','accepted','rejected','expired'].includes(item.status))throw Error('企划邀请记录损坏');ids.add(item.id);if(item.status==='pending'&&(!item.plan||!['accepted','rejected'].includes(item.plan.decision)||!Number.isSafeInteger(item.dueDay)||!Number.isFinite(item.dueAt)))throw Error('企划等待时间损坏');}}
+    if(w.settings.customerAvatarPool!==undefined&&(!Array.isArray(w.settings.customerAvatarPool)||w.settings.customerAvatarPool.some(item=>!item||typeof item.id!=='string'||typeof item.asset!=='string'||!item.asset)))throw Error('甲方头像库损坏');
     const ids=new Set();for(const a of w.artists){if(!a.id||ids.has(a.id))throw Error('画师 ID 重复');ids.add(a.id);integer(a.min,1);integer(a.max,a.min);integer(a.days,1,365);}
-    const orderIds=new Set(),vids=new Set();for(const o of w.commissions){if(!o.id||orderIds.has(o.id))throw Error('订单 ID 重复');orderIds.add(o.id);integer(o.price,1);integer(o.stage,0,3);if(typeof o.title!=='string'||typeof o.brief!=='string')throw Error('订单文字损坏');if(!Array.isArray(o.versions)||!['quoted','working','review','complete','cancelled'].includes(o.status))throw Error('订单损坏');for(const v of o.versions){if(!v.id||vids.has(v.id))throw Error('稿件 ID 重复');vids.add(v.id);if(typeof v.positive!=='string'||typeof v.negative!=='string'||typeof v.note!=='string')throw Error('稿件资料损坏');}}
+    const orderIds=new Set(),vids=new Set();for(const o of w.commissions){if(!o.id||orderIds.has(o.id))throw Error('订单 ID 重复');orderIds.add(o.id);integer(o.price,o.gift?0:1);integer(o.stage,0,3);if(typeof o.title!=='string'||typeof o.brief!=='string')throw Error('订单文字损坏');if(!Array.isArray(o.versions)||!['quoted','working','review','complete','cancelled'].includes(o.status))throw Error('订单损坏');for(const v of o.versions){if(!v.id||vids.has(v.id))throw Error('稿件 ID 重复');vids.add(v.id);if(typeof v.positive!=='string'||typeof v.negative!=='string'||typeof v.note!=='string')throw Error('稿件资料损坏');}}
     for(const a of w.auctions){integer(a.start,1);integer(a.increment,1);if(!Array.isArray(a.bids)||!['open','closed'].includes(a.status))throw Error('拍卖损坏');}
     if(w.customers!==undefined){if(!Array.isArray(w.customers))throw Error('客户资料损坏');const ids=new Set();for(const c of w.customers){if(!c||typeof c.id!=='string'||!c.id||ids.has(c.id)||typeof c.name!=='string')throw Error('客户资料损坏');ids.add(c.id);}}
     if(w.stickers!==undefined){if(!Array.isArray(w.stickers))throw Error('表情包资料损坏');const stickerIds=new Set();for(const sticker of w.stickers){if(!sticker||typeof sticker.id!=='string'||!sticker.id||stickerIds.has(sticker.id)||typeof sticker.name!=='string'||!sticker.name.trim()||typeof sticker.asset!=='string'||!sticker.asset)throw Error('表情包资料损坏');stickerIds.add(sticker.id);}}

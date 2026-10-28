@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import * as C from '../core.js?v=1.2.1';
+import * as C from '../core.js?v=1.5.0';
 test('不同客户各自收消息，交稿和修改进入正确线程',()=>{
  const w=C.newWorld();w.artistActivated=true;const a=C.incoming(w),b=C.incoming(w);assert.notEqual(a.clientId,b.clientId);assert.equal(w.messages['artist:self'],undefined);assert.equal(C.contact(w,a.clientId).name,a.clientName);
  C.acceptIncoming(w,a.id);C.acceptIncoming(w,b.id);const v=C.placeholder(w,a.id,'只给第一位客户的稿件');C.revise(w,a.id,'只给第一位的修改意见');assert.equal(w.messages['artist:'+a.clientId].length,3);assert.equal(w.messages['artist:'+b.clientId].length,1);assert.equal(w.messages['artist:'+a.clientId][1].from,'user');assert.equal(w.messages['artist:'+a.clientId][2].from,'client');assert.equal(w.messages['artist:'+a.clientId][1].versionId,v.id);

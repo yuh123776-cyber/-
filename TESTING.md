@@ -1,5 +1,14 @@
 # 验证范围与交付限制
 
+## v1.5.0 生图、角色私信与企划
+
+- `npm test`：59 项逻辑测试；`npm run check`：30 个运行脚本语法检查。
+- `tests/release15.browser.mjs`：手机 390×844 与桌面布局；独立设置页保存与跨页不丢字段；草稿 / 单画师 / 全局回退；指令实际插入位置；商业授权不足拒绝；换种子及空白修改零次文本请求；非空修改一次文本请求后生图；保留原图；身份隔离的所有版本图片集。
+- `tests/interaction15.browser.mjs`：甲方角色锁定且不继承旧模板；真实人设与关联上下文；头像库、专属头像和双方头像；气泡及限定范围 CSS；统一 AI 开关；邀请先等待、先私信再委托；明确正文覆盖、编辑与重复事件去重；折扣实际结算、赠图零额外扣款并可生成；刷新恢复。
+- 回归通过：`platform.browser.mjs`、`customers.browser.mjs`、`chat-media.browser.mjs`、`instructions.browser.mjs`、`models.browser.mjs`、`relay.browser.mjs`、`profiles.browser.mjs`、`launcher.browser.mjs`。包含原有 URL 自动连接、NAI 原图、已保存密钥 / 具名 API、客户隔离、图片表情包和手机悬浮入口。
+- 浏览器测试需要 Playwright；可用 `CHROMIUM_PATH` 指向系统 Chrome，`HUIYUE_TEST_ROOT` 指向仓库，`HUIYUE_SCREENSHOTS` 指定截图输出目录。插件运行不需要安装依赖或编译。
+- 测试使用伪造酒馆上下文与拦截的模型响应；未调用真实收费服务，未在用户实际手机或实际酒馆主题中验收。图像种子复现能力仍取决于所选图片服务。
+
 ## v1.4.0 密钥与 API 配置库
 
 - 47 项 Node 测试通过；新增连接快照只保留指定字段，排除密钥、配置名称、库引用和剧情提示词的检查。

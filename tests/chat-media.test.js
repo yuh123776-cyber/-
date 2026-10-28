@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {newWorld,message,validateWorld} from '../core.js?v=1.2.1';
-import {addSticker,availableStickers,stickerInstructions,parseStickerReply,chatContent} from '../chat-media.js?v=1.2.1';
+import {newWorld,message,validateWorld} from '../core.js?v=1.5.0';
+import {addSticker,availableStickers,stickerInstructions,parseStickerReply,chatContent} from '../chat-media.js?v=1.5.0';
 test('AI 只能使用表情库中存在的图片，未知标记不能指定任意图片',()=>{
  const w=newWorld(),a=addSticker(w,{name:'猫猫点头',description:'同意，收到',asset:'local-image'});
  assert.deepEqual(parseStickerReply(`收到啦 [[HY_STICKER:${a.id}]]`,[a]),{body:'收到啦',asset:'local-image',kind:'sticker',stickerId:a.id,stickerName:'猫猫点头'});

@@ -1,6 +1,6 @@
-import * as S from './storage.js?v=1.4.0';
-import {uid} from './core.js?v=1.4.0';
-import {connectionFields} from './auto-connect.js?v=1.4.0';
+import * as S from './storage.js?v=1.5.0';
+import {uid} from './core.js?v=1.5.0';
+import {connectionFields} from './auto-connect.js?v=1.5.0';
 const kinds=['chat','prompt','image'];
 let profiles=new Map(),loaded=false,queue=Promise.resolve();
 const serial=action=>{const result=queue.catch(()=>{}).then(action);queue=result;return result;};

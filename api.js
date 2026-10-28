@@ -1,10 +1,10 @@
-import {discoverConnection} from './auto-connect.js?v=1.4.0';
-import {profileKey} from './api-profiles.js?v=1.4.0';
-import {novelAIRequest,novelAIBlob} from './novelai.js?v=1.4.0';
-import * as R from './relay.js?v=1.4.0';
-export {validateRelay} from './relay.js?v=1.4.0';
-import {putAsset} from './storage.js?v=1.4.0';
-import {textInstructions,imageInstructions} from './instructions.js?v=1.4.0';
+import {discoverConnection} from './auto-connect.js?v=1.5.0';
+import {profileKey} from './api-profiles.js?v=1.5.0';
+import {novelAIRequest,novelAIBlob} from './novelai.js?v=1.5.0';
+import * as R from './relay.js?v=1.5.0';
+export {validateRelay} from './relay.js?v=1.5.0';
+import {putAsset} from './storage.js?v=1.5.0';
+import {textInstructions,imageInstructions,textMessages} from './instructions.js?v=1.5.0';
 export const context=()=>globalThis.SillyTavern?.getContext?.()||null;
 const keys={};
 const adapters=new Map();
@@ -26,11 +26,11 @@ export function parseJSON(s){const stripped=String(s).replace(/^\s*```(?:json)?\
 export async function complete(settings,kind,messages,signal){
     if(settings.mode==='tavern'){
         const c=context();if(!c?.generateRaw)throw Error('当前不在 SillyTavern 中，请在酒馆内使用或配置独立 API');
-        const request=()=>{if(signal?.aborted)throw Error('已放弃本次结果');return c.generateRaw({prompt:messages,systemPrompt:textInstructions(settings,kind),responseLength:kind==='prompt'?700:900});};
+        const request=()=>{if(signal?.aborted)throw Error('已放弃本次结果');return c.generateRaw({prompt:textMessages(settings,kind,messages),systemPrompt:textInstructions(settings,kind),responseLength:kind==='prompt'?700:900});};
         const pending=tavernQueue.catch(()=>{}).then(request);tavernQueue=pending;const result=await pending;
         if(signal?.aborted)throw Error('已放弃本次结果');return result;
     }
-    const data=await R.requestJSON(R.endpoint(settings,'text'),{method:'POST',headers:R.headers(settings,credential(settings,kind),true),body:JSON.stringify(R.textRequest(settings,textInstructions(settings,kind),messages)),signal});
+    const data=await R.requestJSON(R.endpoint(settings,'text'),{method:'POST',headers:R.headers(settings,credential(settings,kind),true),body:JSON.stringify(R.textRequest(settings,textInstructions(settings,kind),textMessages(settings,kind,messages))),signal});
     return R.textContent(data);
 }
 export async function draw(settings,v,signal){

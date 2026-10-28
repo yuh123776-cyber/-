@@ -1,7 +1,7 @@
 const svg = body => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${body}</svg>`;
 export const navIcons = {
     home: svg('<path d="m3 10 9-7 9 7v10H3Z"/><path d="M9 20v-7h6v7"/>'),
-    auction: svg('<path d="m13 3 7 7-4 4-7-7Z M5 12l7 7 M8.5 15.5l5-5 M3 21h13"/>'),
+    auction: svg('<g transform="rotate(-38 14 8)"><rect x="7" y="4" width="14" height="6" rx="1"/><path d="M9 4v6m10-6v6"/><rect x="12.5" y="10" width="3" height="9" rx="1"/></g><path d="M12 20h9v2h-9Z"/>'),
     feed: svg('<path d="M20.7 5.3a5 5 0 0 0-7.1 0L12 7l-1.6-1.7a5 5 0 0 0-7.1 7.1L12 21l8.7-8.6a5 5 0 0 0 0-7.1Z"/>'),
     inbox: svg('<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 7 9-7"/>'),
     bench: svg('<rect x="4" y="4" width="16" height="17" rx="2"/><path d="M8 3h8v4H8Z M8 11h8 M8 15h5"/>'),

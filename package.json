@@ -1,10 +1,10 @@
 {
   "name": "huiyue-sillytavern",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node --test tests/core.test.js tests/features.test.js tests/instructions.test.js tests/chat-media.test.js tests/customers.test.js tests/models.test.js tests/relay.test.js tests/auto-connect.test.js tests/profiles.test.js",
-    "check": "node --check index.js && node --check core.js && node --check storage.js && node --check api.js && node --check api-profiles.js && node --check profile-picker.js && node --check model-picker.js && node --check bridge.js && node --check visuals.js && node --check loader-v1.4.0.js && node --check finance.js && node --check funds-source.js && node --check funds-bridge.js && node --check instructions.js && node --check floating-entry.js && node --check chat-media.js && node --check auto-connect.js && node --check relay.js && node --check relay-presets.js && node --check novelai.js && node --check zip-image.js"
+    "test": "node --test tests/core.test.js tests/features.test.js tests/instructions.test.js tests/chat-media.test.js tests/customers.test.js tests/models.test.js tests/relay.test.js tests/auto-connect.test.js tests/profiles.test.js tests/release15.test.js",
+    "check": "node --check api-profiles.js && node --check api.js && node --check auto-connect.js && node --check bridge.js && node --check chat-media.js && node --check chat-style.js && node --check core.js && node --check extra-ui.js && node --check finance.js && node --check floating-entry.js && node --check funds-bridge.js && node --check funds-source.js && node --check index.js && node --check instructions.js && node --check interaction-engine.js && node --check loader-v1.5.0.js && node --check migrations.js && node --check model-picker.js && node --check novelai.js && node --check persona-context.js && node --check pricing.js && node --check profile-picker.js && node --check projects.js && node --check relay-presets.js && node --check relay.js && node --check render-presets.js && node --check settings-ui.js && node --check storage.js && node --check visuals.js && node --check zip-image.js"
   }
 }

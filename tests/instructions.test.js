@@ -1,13 +1,13 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {newWorld} from '../core.js?v=1.2.1';
-import {DEFAULT_DM_PRESET,textInstructions,imageInstructions,dialogueSettings} from '../instructions.js?v=1.2.1';
-import {complete,draw,registerImageAdapter} from '../api.js?v=1.2.1';
+import {newWorld} from '../core.js?v=1.5.0';
+import {DEFAULT_DM_PRESET,textInstructions,imageInstructions,dialogueSettings} from '../instructions.js?v=1.5.0';
+import {complete,draw,registerImageAdapter} from '../api.js?v=1.5.0';
 test('三套指令按用途隔离，旧存档有默认对话预设，留空可停用',()=>{
  const w=newWorld(),before=structuredClone(w.settings);w.settings.dmPreset='DM_ONLY';w.settings.prompt.instructions='PROMPT_ONLY';w.settings.image.instructions='IMAGE_ONLY';
  assert.ok(textInstructions(w.settings.prompt,'prompt').endsWith('PROMPT_ONLY'));assert.ok(!textInstructions(w.settings.chat,'chat').includes('DM_ONLY'));assert.ok(dialogueSettings(w.settings).template.endsWith('DM_ONLY'));assert.deepEqual(w.settings.chat,before.chat);
  assert.equal(imageInstructions(w.settings.image,'subject'),'IMAGE_ONLY\n\nsubject');assert.equal(imageInstructions({},'subject'),'subject');
- delete w.settings.dmPreset;assert.ok(dialogueSettings(w.settings).template.includes(DEFAULT_DM_PRESET));w.settings.dmPreset='';assert.equal(dialogueSettings(w.settings).template,w.settings.chat.template);
+ delete w.settings.dmPreset;assert.ok(dialogueSettings(w.settings).template.includes(DEFAULT_DM_PRESET));w.settings.dmPreset='';assert.ok(dialogueSettings(w.settings).template.includes('只替该画师说话'));assert.ok(!dialogueSettings(w.settings).template.includes('DM_ONLY'));const client=dialogueSettings(w.settings,{speakerRole:'client'});assert.ok(client.template.includes('你是来委托画师的甲方'));assert.ok(!client.template.includes('你是当前资料所指的画师'));
 });
 test('酒馆与独立文本接口都收到提示词 AI 附加指令，私信预设只在专门调用时添加',async()=>{
  const oldFetch=globalThis.fetch,calls=[];globalThis.SillyTavern={getContext:()=>({generateRaw:async data=>{calls.push(data);return 'ok';}})};

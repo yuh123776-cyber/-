@@ -70,3 +70,29 @@
 #hy-launcher{cursor:grab;-webkit-user-select:none;-webkit-touch-callout:none}#hy-launcher.hy-launcher-dragging{cursor:grabbing;transition:none!important}#hy-launcher img,#hy-launcher svg{pointer-events:none}
 
 #hy-app .hy-composer{flex-wrap:wrap}#hy-app .hy-composer textarea{min-width:0;width:auto}#hy-app .hy-composer-tools{display:flex;gap:8px;flex-basis:100%;border-top:1px solid color-mix(in srgb,var(--hy-ink) 7%,transparent);padding-top:8px}#hy-app .hy-composer-tools button{font-size:.8em;padding:6px 12px}#hy-app .hy-dm-media{display:block;border:0;background:transparent;padding:0;margin:8px 0;max-width:260px}#hy-app .hy-message.self .hy-dm-media{margin-left:auto}#hy-app .hy-dm-image{display:block;max-width:100%;max-height:300px;object-fit:contain;border-radius:14px}#hy-app .hy-dm-sticker{width:136px}#hy-app .hy-dm-sticker .hy-dm-image{max-height:160px;border-radius:0}#hy-app .hy-sticker-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}#hy-app .hy-sticker-grid article{min-width:0;text-align:center}#hy-app .hy-sticker-grid article>button{display:flex;flex-direction:column;align-items:center;gap:6px;width:100%;padding:6px;background:var(--hy-bg);border-radius:14px}#hy-app .hy-sticker-thumb{width:100%;height:90px;max-width:130px;object-fit:contain}#hy-app .hy-sticker-grid .hy-actions{gap:4px;justify-content:center;margin:6px 0}#hy-app .hy-sticker-grid .hy-actions button{font-size:.7em;padding:4px 7px}#hy-app .hy-sticker-grid small{max-width:100%;overflow-wrap:anywhere}
+#hy-app .hy-settings-tabs{display:flex;gap:8px;overflow:auto;margin:0 0 24px;padding:3px 0 8px;scrollbar-width:thin}
+#hy-app .hy-settings-tabs button{white-space:nowrap;border-radius:14px;font-size:.86em;padding:10px 14px}
+#hy-app .hy-settings-tabs .selected{background:var(--hy-accent);color:var(--hy-card);border-color:var(--hy-accent)}
+#hy-app .hy-quote-price{padding:14px;background:var(--hy-bg);border-radius:14px;color:var(--hy-accent);font-weight:600}
+#hy-app .hy-project-answer{margin:12px 0;padding:14px;border:1px solid color-mix(in srgb,var(--hy-accent) 20%,transparent);border-radius:16px}
+#hy-app .hy-project-answer p{font-size:.85em;margin:8px 0}
+#hy-app .hy-project-answer .hy-tag{margin-left:10px}
+#hy-app .hy-gallery-cover{display:block;width:100%;padding:0;border:0;background:var(--hy-bg);overflow:hidden;border-radius:var(--hy-radius) var(--hy-radius) 0 0}
+#hy-app .hy-nav .active svg{stroke-width:2.3;filter:drop-shadow(0 1px 2px color-mix(in srgb,var(--hy-accent) 25%,transparent))}
+#hy-app .hy-nav .active svg>path:first-child,#hy-app .hy-nav .active svg rect,#hy-app .hy-nav .active svg circle{fill:color-mix(in srgb,var(--hy-accent) 20%,transparent)}
+#hy-app .hy-message{max-width:90%}
+#hy-app .hy-message-row{display:flex;align-items:flex-start;gap:10px}
+#hy-app .hy-message.self .hy-message-row{flex-direction:row-reverse}
+#hy-app .hy-message-avatar{display:block;width:38px;height:38px;min-width:38px;flex:none;border-radius:13px;object-fit:cover;font-size:18px}
+#hy-app .hy-message-avatar svg,#hy-app .hy-avatar svg{display:block;width:100%;height:100%}
+#hy-app .hy-message-content{min-width:0;max-width:calc(100% - 48px);text-align:left}
+#hy-app .hy-message-content>small{display:block;margin:0 4px 5px;color:color-mix(in srgb,var(--hy-ink) 55%,transparent);font-size:.7em}
+#hy-app .hy-message.self .hy-message-content>small{text-align:right}
+#hy-app .hy-message-text{max-width:100%;overflow-wrap:anywhere;background:var(--hy-other-bubble,var(--hy-card));border-radius:var(--hy-bubble-radius,18px) var(--hy-bubble-radius,18px) var(--hy-bubble-radius,18px) 4px}
+#hy-app .hy-message.self .hy-message-text{background:var(--hy-self-bubble,color-mix(in srgb,var(--hy-accent) 20%,var(--hy-card)));border-radius:var(--hy-bubble-radius,18px) var(--hy-bubble-radius,18px) 4px var(--hy-bubble-radius,18px)}
+#hy-app[data-bubble=round] .hy-message-text,#hy-app[data-bubble=round] .hy-message.self .hy-message-text{border-radius:28px;box-shadow:0 3px 8px #203f5c0a}
+#hy-app[data-bubble=outline] .hy-message-text{border:1.5px solid color-mix(in srgb,var(--hy-accent) 60%,transparent);background:transparent}
+#hy-app[data-bubble=paper] .hy-message-text{border-radius:3px;box-shadow:3px 4px 0 color-mix(in srgb,var(--hy-accent) 15%,transparent);border-bottom:2px solid color-mix(in srgb,var(--hy-accent) 20%,transparent)}
+#hy-app[data-bubble=pixel] .hy-message-text{border-radius:0;border:2px solid currentColor;box-shadow:3px 3px 0 color-mix(in srgb,var(--hy-accent) 25%,transparent)}
+#hy-app .hy-bubble-preview{padding:12px;background:var(--hy-bg);border-radius:18px}
+@media(max-width:760px){#hy-app .hy-message{max-width:100%}#hy-app .hy-message-row{gap:8px}#hy-app .hy-message-avatar{width:32px;height:32px;min-width:32px;border-radius:11px}#hy-app .hy-message-content{max-width:calc(100% - 40px)}#hy-app .hy-message-text{padding:11px 13px}#hy-app .hy-settings-tabs button{padding:8px 10px;font-size:.78em}}

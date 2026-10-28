@@ -1,5 +1,5 @@
-import * as P from './api-profiles.js?v=1.4.0';
-import {connectionFields} from './auto-connect.js?v=1.4.0';
+import * as P from './api-profiles.js?v=1.5.0';
+import {connectionFields} from './auto-connect.js?v=1.5.0';
 export function bindProfilePickers(app,notify,onRemoved){
     const control=(box,kind,key)=>box.querySelector(`[name="${kind}.${key}"]`);
     function fill(box,kind,profile){

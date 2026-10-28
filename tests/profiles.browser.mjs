@@ -9,7 +9,7 @@ try{
  const context=await browser.newContext({viewport:{width:390,height:844},acceptDownloads:true});
  // Seed the previous database schema before the extension loads.
  const html=`<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="/style.css"><script>
- function boot(){const script=document.createElement('script');script.type='module';script.src='/loader-v1.4.0.js';document.head.append(script);}
+ function boot(){const script=document.createElement('script');script.type='module';script.src='/loader-v1.5.0.js';document.head.append(script);}
  if(localStorage.getItem('profile-migration-seeded'))boot();else{const request=indexedDB.open('huiyue-v1',1);request.onupgradeneeded=()=>{request.result.createObjectStore('worlds',{keyPath:'id'});request.result.createObjectStore('assets',{keyPath:'id'});};request.onsuccess=()=>{const db=request.result,t=db.transaction(['worlds','assets'],'readwrite');t.objectStore('worlds').put({id:'migration-marker',value:'preserved'});t.objectStore('assets').put({id:'migration-asset',blob:new Blob(['original asset'])});t.oncomplete=()=>{db.close();localStorage.setItem('profile-migration-seeded','1');boot();};};}
  </script>`;
  await context.route('**/*',async route=>{
@@ -27,14 +27,14 @@ try{
  const page=await context.newPage();page.on('pageerror',error=>errors.push(error.message));
  const open=async()=>{await page.waitForFunction(()=>globalThis.Huiyue);await page.evaluate(()=>Huiyue.open());await page.locator('[data-act="nav"][data-id="me"]').click();await page.locator('[data-act="settings"]').click();};
  const box=()=>page.locator('[data-api-kind="chat"]');
- const state=()=>page.evaluate(async()=>{const S=await import('/storage.js?v=1.4.0');return S.loadWorld(localStorage.getItem('huiyue-world'));});
+ const state=()=>page.evaluate(async()=>{const S=await import('/storage.js?v=1.5.0');return S.loadWorld(localStorage.getItem('huiyue-world'));});
  const save=async model=>{
   await page.locator('[data-form=settings] > button[type=submit]').click();
-  await page.waitForFunction(async model=>{const S=await import('/storage.js?v=1.4.0'),w=await S.loadWorld(localStorage.getItem('huiyue-world'));return w?.settings.chat.model===model&&!!w.settings.chat.apiProfileId;},model);
+  await page.waitForFunction(async model=>{const S=await import('/storage.js?v=1.5.0'),w=await S.loadWorld(localStorage.getItem('huiyue-world'));return w?.settings.chat.model===model&&!!w.settings.chat.apiProfileId;},model);
   await page.waitForFunction(()=>document.querySelector('[name="chat.key"]')?.value==='');
  };
  const fetchModels=async()=>{await box().locator('[data-fetch-models]').click();await box().locator('[data-model-status]').filter({hasText:'读取到'}).waitFor();};
- const invoke=()=>page.evaluate(async()=>{const A=await import('/api.js?v=1.4.0'),S=await import('/storage.js?v=1.4.0'),w=await S.loadWorld(localStorage.getItem('huiyue-world'));return A.complete(w.settings.chat,'chat',[{role:'user',content:'hello'}]);});
+ const invoke=()=>page.evaluate(async()=>{const A=await import('/api.js?v=1.5.0'),S=await import('/storage.js?v=1.5.0'),w=await S.loadWorld(localStorage.getItem('huiyue-world'));return A.complete(w.settings.chat,'chat',[{role:'user',content:'hello'}]);});
  await page.goto('http://huiyue.test/');await open();
  await box().locator('[name="chat.url"]').fill('https://primary.test/v1');await box().locator('[name="chat.key"]').fill('key-alpha');await box().locator('[name="chat.profileName"]').fill('主用 API');
  await fetchModels();await box().locator('[data-model-list]').selectOption('model-a');await save('model-a');
@@ -53,7 +53,7 @@ try{
  await box().locator('[data-api-profiles]').selectOption(primary);assert.equal(await box().locator('[name="chat.url"]').inputValue(),'https://primary.test/v1');await save('model-a');
  assert.equal(await invoke(),'ok');assert.equal(calls.at(-1).headers.authorization,'Bearer key-alpha');assert.ok(calls.at(-1).url.endsWith('/chat/completions'));
  // Remembered keys never follow a different origin or a different service kind.
- const isolated=await page.evaluate(async id=>{const P=await import('/api-profiles.js?v=1.4.0');return {otherOrigin:P.profileKey(id,'chat','https://other.test/v1'),otherKind:P.profileKey(id,'image','https://primary.test/v1'),publicValue:JSON.stringify(P.getProfile(id,'chat'))};},primary);
+ const isolated=await page.evaluate(async id=>{const P=await import('/api-profiles.js?v=1.5.0');return {otherOrigin:P.profileKey(id,'chat','https://other.test/v1'),otherKind:P.profileKey(id,'image','https://primary.test/v1'),publicValue:JSON.stringify(P.getProfile(id,'chat'))};},primary);
  assert.equal(isolated.otherOrigin,'');assert.equal(isolated.otherKind,'');assert.ok(!isolated.publicValue.includes('key-alpha'));
  await box().locator('[data-api-profiles]').selectOption(backup);await save('model-b');
  await box().locator('[data-api-profile-action="clear"]').click();await box().locator('[name="chat.key"][placeholder*="清除"]').waitFor();
@@ -65,7 +65,7 @@ try{
  await box().locator('[data-api-profiles]').selectOption(primary);await box().locator('[data-api-profile-action="delete"]').click();
  await page.waitForFunction(()=>document.querySelector('[data-api-kind="chat"] [data-api-profiles]').options.length===2);
  await page.reload();await open();assert.equal(await box().locator('[data-api-profiles] option').count(),2);
- const migration=await page.evaluate(async()=>{const S=await import('/storage.js?v=1.4.0'),db=await S.openDB(),world=await S.loadWorld('migration-marker'),asset=await S.getAsset('migration-asset');return {version:db.version,world:world.value,asset:await asset.blob.text(),profiles:(await S.readApiProfiles()).length};});
+ const migration=await page.evaluate(async()=>{const S=await import('/storage.js?v=1.5.0'),db=await S.openDB(),world=await S.loadWorld('migration-marker'),asset=await S.getAsset('migration-asset');return {version:db.version,world:world.value,asset:await asset.blob.text(),profiles:(await S.readApiProfiles()).length};});
  assert.equal(migration.version,2);assert.equal(migration.world,'preserved');assert.equal(migration.asset,'original asset');assert.equal(migration.profiles,1);assert.deepEqual(errors,[]);
  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
  console.log('PASS: schema migration preserves worlds/assets; persistent keys survive reload; two named APIs switch exact models/protocols/keys; clear/delete persist; no secret in world exports/public records; origin/kind isolation; mobile layout.');
